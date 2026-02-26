@@ -1,4 +1,7 @@
-"""Utils module."""
+"""
+Utils module for Music Recommendation System.
+Provides utility functions for audio processing, data preparation, and evaluation.
+"""
 from .audio_processor import (
     AudioProcessor,
     extract_embeddings_from_directory,

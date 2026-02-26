@@ -45,9 +45,9 @@ class NCF(nn.Module):
         self.item_embedding = nn.Embedding(num_items, embedding_dim)
         
         # GMF component (element-wise product of embeddings)
-        self_dim = embedding_dim
+        gmf_output_dim = embedding_dim
         
-        # MLP.gmf_output component
+        # MLP component
         mlp_layers = []
         input_dim = embedding_dim * 2
         
@@ -61,7 +61,7 @@ class NCF(nn.Module):
         self.mlp = nn.Sequential(*mlp_layers)
         
         # Final prediction layer (combines GMF and MLP)
-        final_input_dim = self.gmf_output_dim + hidden_dims[-1]
+        final_input_dim = gmf_output_dim + hidden_dims[-1]
         self.output_layer = nn.Sequential(
             nn.Linear(final_input_dim, 32),
             nn.ReLU(),

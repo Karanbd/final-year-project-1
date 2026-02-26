@@ -19,17 +19,17 @@ DATA_DIR.mkdir(exist_ok=True)
 MODEL_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-# Drive path for Google Drive (for Colab)
-DRIVE_PATH = os.environ.get("DRIVE_PATH", "/content/drive/MyDrive")
+# Local paths (Windows)
+LOCAL_DATA_PATH = "C:/Users/admin/Desktop"
 
 # Audio data paths
-AUDIO_BASE_PATH = os.path.join(DRIVE_PATH, "fma_small", "fma_small")
-AUDIO_SAMPLE_PATH = os.path.join(DRIVE_PATH, "fma_small", "fma_small", "000", "000002.mp3")
+AUDIO_BASE_PATH = os.path.join(LOCAL_DATA_PATH, "fma_small", "fma_small")
+AUDIO_SAMPLE_PATH = os.path.join(LOCAL_DATA_PATH, "fma_small", "fma_small", "000", "000002.mp3")
 
 # Model save paths
-EMBEDDINGS_SAVE_PATH = os.path.join(DRIVE_PATH, "2nd_Project_Music", "ast_embeddings.pt")
-INTERACTIONS_SAVE_PATH = os.path.join(DRIVE_PATH, "2nd_Project_Music", "fake_interactions.csv")
-MODEL_CHECKPOINT_PATH = os.path.join(DRIVE_PATH, "2nd_Project_Music", "model_checkpoint.pt")
+EMBEDDINGS_SAVE_PATH = os.path.join(LOCAL_DATA_PATH, "ast_embeddings (2).pt")
+INTERACTIONS_SAVE_PATH = os.path.join(LOCAL_DATA_PATH, "fake_interactions.csv")
+MODEL_CHECKPOINT_PATH = os.path.join(LOCAL_DATA_PATH, "model_checkpoint.pt")
 
 # ============================================
 # Model Configuration
@@ -39,11 +39,11 @@ MODEL_NAME = "MIT/ast-finetuned-audioset-10-10-0.4593"
 AUDIO_EMBEDDING_DIM = 768  # AST output dimension
 
 # NCF Model
-EMBEDDING_DIM = 64
-NCF_HIDDEN_DIMS = [128, 64, 32]
+EMBEDDING_DIM = 128  # Increased from 64
+NCF_HIDDEN_DIMS = [256, 128, 64]  # Increased dimensions
 
 # Hybrid Model
-HYBRID_HIDDEN_DIMS = [256, 128, 64]
+HYBRID_HIDDEN_DIMS = [512, 256, 128]  # Increased dimensions
 
 # ============================================
 # Training Configuration
@@ -53,23 +53,29 @@ NUM_USERS = 500
 MIN_SONGS_PER_USER = 20
 MAX_SONGS_PER_USER = 50
 
-# Hyperparameters
-BATCH_SIZE = 256
-NCF_EPOCHS = 10
-HYBRID_EPOCHS = 5
-LEARNING_RATE = 0.001
-WEIGHT_DECAY = 1e-5
+# Hyperparameters - IMPROVED
+BATCH_SIZE = 128  # Reduced for better gradient updates
+NCF_EPOCHS = 30  # Increased from 10
+HYBRID_EPOCHS = 15  # Increased from 5
+LEARNING_RATE = 0.0005  # Reduced for more stable training
+WEIGHT_DECAY = 1e-4  # Increased for better regularization
+DROPOUT = 0.2  # Added dropout
 
-# Early stopping
-PATIENCE = 3
-MIN_DELTA = 0.001
+# Early stopping - More patient
+PATIENCE = 5  # Increased from 3
+MIN_DELTA = 0.0005  # Smaller delta for more patience
 
 # Evaluation
 K = 10  # For precision@k, recall@k, etc.
 TEST_RATIO = 0.2
 
-# Negative sampling
-NEGATIVE_SAMPLE_RATIO = 3  # 3x negative samples per positive
+# Negative sampling - More negatives for better learning
+NEGATIVE_SAMPLE_RATIO = 5  # Increased from 3
+
+# Learning rate scheduling
+USE_SCHEDULER = True
+SCHEDULER_PATIENCE = 2
+SCHEDULER_FACTOR = 0.5
 
 # ============================================
 # Device Configuration

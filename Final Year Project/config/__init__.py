@@ -1,1 +1,74 @@
-"""Config module."""
+"""
+Configuration module for Music Recommendation System.
+Provides centralized access to all configuration settings.
+"""
+
+from .config import (
+    # Paths
+    BASE_DIR,
+    DATA_DIR,
+    MODEL_DIR,
+    OUTPUT_DIR,
+    LOCAL_DATA_PATH,
+    AUDIO_BASE_PATH,
+    AUDIO_SAMPLE_PATH,
+    EMBEDDINGS_SAVE_PATH,
+    INTERACTIONS_SAVE_PATH,
+    MODEL_CHECKPOINT_PATH,
+    # Model config
+    MODEL_NAME,
+    AUDIO_EMBEDDING_DIM,
+    EMBEDDING_DIM,
+    NCF_HIDDEN_DIMS,
+    HYBRID_HIDDEN_DIMS,
+    # Training config
+    NUM_USERS,
+    MIN_SONGS_PER_USER,
+    MAX_SONGS_PER_USER,
+    BATCH_SIZE,
+    NCF_EPOCHS,
+    HYBRID_EPOCHS,
+    LEARNING_RATE,
+    WEIGHT_DECAY,
+    PATIENCE,
+    MIN_DELTA,
+    K,
+    TEST_RATIO,
+    NEGATIVE_SAMPLE_RATIO,
+    RANDOM_SEED,
+    # Functions
+    get_device,
+)
+
+__all__ = [
+    'BASE_DIR',
+    'DATA_DIR', 
+    'MODEL_DIR',
+    'OUTPUT_DIR',
+    'LOCAL_DATA_PATH',
+    'AUDIO_BASE_PATH',
+    'AUDIO_SAMPLE_PATH',
+    'EMBEDDINGS_SAVE_PATH',
+    'INTERACTIONS_SAVE_PATH',
+    'MODEL_CHECKPOINT_PATH',
+    'MODEL_NAME',
+    'AUDIO_EMBEDDING_DIM',
+    'EMBEDDING_DIM',
+    'NCF_HIDDEN_DIMS',
+    'HYBRID_HIDDEN_DIMS',
+    'NUM_USERS',
+    'MIN_SONGS_PER_USER',
+    'MAX_SONGS_PER_USER',
+    'BATCH_SIZE',
+    'NCF_EPOCHS',
+    'HYBRID_EPOCHS',
+    'LEARNING_RATE',
+    'WEIGHT_DECAY',
+    'PATIENCE',
+    'MIN_DELTA',
+    'K',
+    'TEST_RATIO',
+    'NEGATIVE_SAMPLE_RATIO',
+    'RANDOM_SEED',
+    'get_device',
+]

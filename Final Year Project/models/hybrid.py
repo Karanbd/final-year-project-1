@@ -22,7 +22,8 @@ class HybridModel(nn.Module):
         audio_embedding_dim: int = 768,
         user_embedding_dim: int = 64,
         hidden_dims: list = [256, 128, 64],
-        dropout_rate: float = 0.3
+        dropout_rate: float = 0.3,
+        num_items: int = None
     ):
         """
         Initialize the Hybrid model.
@@ -33,15 +34,20 @@ class HybridModel(nn.Module):
             user_embedding_dim: Dimension of user embeddings
             hidden_dims: List of hidden layer dimensions
             dropout_rate: Dropout probability for regularization
+            num_items: Number of items (songs)
         """
         super(HybridModel, self).__init__()
         
         self.num_users = num_users
+        self.num_items = num_items
         self.audio_embedding_dim = audio_embedding_dim
         self.user_embedding_dim = user_embedding_dim
         
         # User embedding layer
         self.user_embedding = nn.Embedding(num_users, user_embedding_dim)
+        
+        # Item (song) embedding layer for audio
+        self.item_embedding = nn.Embedding(num_items, audio_embedding_dim)
         
         # Audio embedding projection layer
         self.audio_projection = nn.Sequential(
@@ -89,14 +95,14 @@ class HybridModel(nn.Module):
     def forward(
         self,
         user_ids: torch.Tensor,
-        audio_embeddings: torch.Tensor
+        item_ids: torch.Tensor
     ) -> torch.Tensor:
         """
         Forward pass through the hybrid model.
         
         Args:
             user_ids: Tensor of user IDs
-            audio_embeddings: Tensor of audio embeddings for items
+            item_ids: Tensor of item IDs
             
         Returns:
             Predicted probabilities
@@ -104,8 +110,11 @@ class HybridModel(nn.Module):
         # Get user embeddings
         user_emb = self.user_embedding(user_ids)
         
+        # Get item (audio) embeddings
+        audio_emb_raw = self.item_embedding(item_ids)
+        
         # Project audio embeddings to same dimension
-        audio_emb = self.audio_projection(audio_embeddings)
+        audio_emb = self.audio_projection(audio_emb_raw)
         
         # Concatenate user and audio embeddings
         combined = torch.cat([user_emb, audio_emb], dim=1)
@@ -125,17 +134,17 @@ class HybridModel(nn.Module):
     def predict(
         self,
         user_id: int,
-        audio_embeddings: torch.Tensor,
+        item_ids: torch.Tensor,
         device: torch.device = None
     ) -> torch.Tensor:
-        """Get predictions for a user and multiple audio embeddings."""
+        """Get predictions for a user and multiple items."""
         if device is None:
             device = next(self.parameters()).device
         
-        user_tensor = torch.tensor([user_id] * len(audio_embeddings), device=device)
+        user_tensor = torch.tensor([user_id] * len(item_ids), device=device)
         
         with torch.no_grad():
-            scores = self.forward(user_tensor, audio_embeddings)
+            scores = self.forward(user_tensor, item_ids)
         
         return scores
 
@@ -150,6 +159,7 @@ class AttentionHybridModel(nn.Module):
     def __init__(
         self,
         num_users: int,
+        num_items: int,
         audio_embedding_dim: int = 768,
         user_embedding_dim: int = 64,
         num_heads: int = 4,
@@ -158,9 +168,13 @@ class AttentionHybridModel(nn.Module):
         super(AttentionHybridModel, self).__init__()
         
         self.num_users = num_users
+        self.num_items = num_items
         
         # User embedding
         self.user_embedding = nn.Embedding(num_users, user_embedding_dim)
+        
+        # Item embedding for audio
+        self.item_embedding = nn.Embedding(num_items, audio_embedding_dim)
         
         # Audio projection
         self.audio_projection = nn.Linear(audio_embedding_dim, user_embedding_dim)
@@ -203,13 +217,16 @@ class AttentionHybridModel(nn.Module):
     def forward(
         self,
         user_ids: torch.Tensor,
-        audio_embeddings: torch.Tensor
+        item_ids: torch.Tensor
     ) -> torch.Tensor:
         # User embedding
         user_emb = self.user_embedding(user_ids)  # [batch, dim]
         
+        # Get audio embeddings for items
+        audio_emb_raw = self.item_embedding(item_ids)
+        
         # Project audio
-        audio_emb = self.audio_projection(audio_embeddings)  # [batch, dim]
+        audio_emb = self.audio_projection(audio_emb_raw)  # [batch, dim]
         
         # Prepare for attention: [batch, 1, dim]
         user_emb_expanded = user_emb.unsqueeze(1)
@@ -240,6 +257,7 @@ class DeepHybridModel(nn.Module):
     def __init__(
         self,
         num_users: int,
+        num_items: int,
         audio_embedding_dim: int = 768,
         user_tower_dim: int = 64,
         audio_tower_dim: int = 128,
@@ -247,6 +265,9 @@ class DeepHybridModel(nn.Module):
         dropout_rate: float = 0.3
     ):
         super(DeepHybridModel, self).__init__()
+        
+        self.num_users = num_users
+        self.num_items = num_items
         
         # User tower
         self.user_embedding = nn.Embedding(num_users, user_tower_dim)
@@ -258,6 +279,7 @@ class DeepHybridModel(nn.Module):
         )
         
         # Audio tower
+        self.item_embedding = nn.Embedding(num_items, audio_embedding_dim)
         self.audio_tower = nn.Sequential(
             nn.Linear(audio_embedding_dim, audio_tower_dim),
             nn.ReLU(),
@@ -286,12 +308,13 @@ class DeepHybridModel(nn.Module):
     def forward(
         self,
         user_ids: torch.Tensor,
-        audio_embeddings: torch.Tensor
+        item_ids: torch.Tensor
     ) -> torch.Tensor:
         user_emb = self.user_embedding(user_ids)
         user_out = self.user_tower(user_emb)
         
-        audio_out = self.audio_tower(audio_embeddings)
+        audio_emb = self.item_embedding(item_ids)
+        audio_out = self.audio_tower(audio_emb)
         
         combined = torch.cat([user_out, audio_out], dim=1)
         output = self.fusion(combined)

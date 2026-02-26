@@ -138,7 +138,7 @@ class MusicSessionDataset(Dataset):
         return self.sequences[idx], self.next_items[idx]
 
 
-def create_train_test_split(
+def train_test_split(
     df: pd.DataFrame,
     test_ratio: float = 0.2,
     user_col: str = "user_id",

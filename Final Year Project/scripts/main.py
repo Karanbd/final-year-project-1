@@ -96,7 +96,7 @@ def train_model(
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=2, verbose=True
+        optimizer, mode='min', factor=0.5, patience=2
     )
     
     # Early stopping
@@ -113,7 +113,7 @@ def train_model(
         for users, items, labels in dataloader:
             users = users.to(device)
             items = items.to(device)
-            labels = labels.to(device).unsqueeze(1)
+            labels = labels.to(device).float()
             
             optimizer.zero_grad()
             preds = model(users, items)
@@ -140,7 +140,7 @@ def train_model(
                 for users, items, labels in val_loader:
                     users = users.to(device)
                     items = items.to(device)
-                    labels = labels.to(device).unsqueeze(1)
+                    labels = labels.to(device).float()
                     
                     preds = model(users, items)
                     loss = criterion(preds, labels)
@@ -313,6 +313,7 @@ def run_hybrid_pipeline(
     # Train Hybrid model
     hybrid_model = HybridModel(
         num_users=num_users,
+        num_items=num_songs,
         audio_embedding_dim=embedding_dim,
         user_embedding_dim=config.EMBEDDING_DIM,
         hidden_dims=config.HYBRID_HIDDEN_DIMS,
@@ -334,7 +335,7 @@ def run_hybrid_pipeline(
     
     # Evaluate
     logger.info("Evaluating Hybrid model...")
-    results = evaluate_model(hybrid_model, train_df, test_df, num_songs, k_values=[5, 10, 20], device=device)
+    results = evaluate_model(hybrid_model, train_df, test_df, num_songs, k_values=[5, 10, 20], device=device, audio_embeddings=normalized_audio)
     print_evaluation_results(results)
     
     return hybrid_model, results
