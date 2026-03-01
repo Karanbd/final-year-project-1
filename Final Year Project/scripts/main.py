@@ -252,13 +252,20 @@ def run_ncf_pipeline(
     results = evaluate_model(ncf_model, train_df, test_df, num_songs, k_values=[5, 10, 20], device=device)
     print_evaluation_results(results)
     
+    # Save the trained NCF model
+    ncf_save_path = config.NCF_MODEL_PATH
+    torch.save(ncf_model.state_dict(), ncf_save_path)
+    logger.info(f"Saved NCF model to {ncf_save_path}")
+    
     return ncf_model, results
 
 
 def run_hybrid_pipeline(
     embeddings_dict: Dict[str, torch.Tensor],
     device: torch.device,
-    num_users: int = 500
+    num_users: int = 500,
+    num_songs: int = None,
+    ncf_train_df: pd.DataFrame = None
 ) -> Tuple[HybridModel, Dict]:
     """
     Run the Hybrid pipeline.
@@ -267,6 +274,8 @@ def run_hybrid_pipeline(
         embeddings_dict: Dictionary of song embeddings
         device: Device to use
         num_users: Number of users
+        num_songs: Number of songs (should match NCF)
+        ncf_train_df: The NCF training DataFrame with encoded IDs (to use same songs)
         
     Returns:
         Tuple of (trained model, evaluation results)
@@ -279,9 +288,18 @@ def run_hybrid_pipeline(
     ast_embeddings = torch.load(config.EMBEDDINGS_SAVE_PATH)
     embedding_dim = 768
     
-    # Get number of songs from embeddings
-    num_songs = len(ast_embeddings)
+    # CRITICAL: Use num_songs from NCF if provided, otherwise fall back to embeddings
+    # This ensures both models use the same song IDs!
+    if num_songs is None:
+        num_songs = len(ast_embeddings)
     logger.info(f"Number of songs: {num_songs}")
+    
+    # If we have NCF training data, use the same songs!
+    if ncf_train_df is not None:
+        # Get unique song IDs from NCF training data
+        ncf_song_ids = set(ncf_train_df['song_id'].unique())
+        num_songs = len(ncf_song_ids)
+        logger.info(f"Using {num_songs} songs from NCF training data (matching NCF model)")
     
     # Create audio embedding matrix
     audio_matrix = torch.zeros(num_songs, embedding_dim)
@@ -338,6 +356,11 @@ def run_hybrid_pipeline(
     results = evaluate_model(hybrid_model, train_df, test_df, num_songs, k_values=[5, 10, 20], device=device, audio_embeddings=normalized_audio)
     print_evaluation_results(results)
     
+    # Save the trained Hybrid model
+    hybrid_save_path = config.HYBRID_MODEL_PATH
+    torch.save(hybrid_model.state_dict(), hybrid_save_path)
+    logger.info(f"Saved Hybrid model to {hybrid_save_path}")
+    
     return hybrid_model, results
 
 
@@ -367,8 +390,14 @@ def main():
     # Step 2: Run NCF pipeline
     ncf_model, ncf_results = run_ncf_pipeline(embeddings_dict, device)
     
+    # Get num_songs from NCF to use in Hybrid
+    df = pd.read_csv(config.INTERACTIONS_SAVE_PATH)
+    df, _, _ = encode_ids(df)
+    num_songs = df["song_id"].nunique()
+    logger.info(f"Using {num_songs} songs for Hybrid model (matching NCF)")
+    
     # Step 3: Run Hybrid pipeline
-    hybrid_model, hybrid_results = run_hybrid_pipeline(embeddings_dict, device)
+    hybrid_model, hybrid_results = run_hybrid_pipeline(embeddings_dict, device, num_songs=num_songs)
     
     logger.info("=" * 50)
     logger.info("All pipelines completed!")

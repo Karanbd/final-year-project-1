@@ -27,9 +27,11 @@ AUDIO_BASE_PATH = os.path.join(LOCAL_DATA_PATH, "fma_small", "fma_small")
 AUDIO_SAMPLE_PATH = os.path.join(LOCAL_DATA_PATH, "fma_small", "fma_small", "000", "000002.mp3")
 
 # Model save paths
-EMBEDDINGS_SAVE_PATH = os.path.join(LOCAL_DATA_PATH, "ast_embeddings (2).pt")
+EMBEDDINGS_SAVE_PATH = os.path.join(LOCAL_DATA_PATH, "ast_embeddings (3).pt")
 INTERACTIONS_SAVE_PATH = os.path.join(LOCAL_DATA_PATH, "fake_interactions.csv")
-MODEL_CHECKPOINT_PATH = os.path.join(LOCAL_DATA_PATH, "model_checkpoint.pt")
+MODEL_CHECKPOINT_PATH = os.path.join(BASE_DIR, "model_checkpoint.pt")
+NCF_MODEL_PATH = os.path.join(BASE_DIR, "ncf_model.pt")
+HYBRID_MODEL_PATH = os.path.join(BASE_DIR, "hybrid_model.pt")
 
 # ============================================
 # Model Configuration
@@ -54,10 +56,10 @@ MIN_SONGS_PER_USER = 20
 MAX_SONGS_PER_USER = 50
 
 # Hyperparameters - IMPROVED
-BATCH_SIZE = 128  # Reduced for better gradient updates
-NCF_EPOCHS = 30  # Increased from 10
-HYBRID_EPOCHS = 15  # Increased from 5
-LEARNING_RATE = 0.0005  # Reduced for more stable training
+BATCH_SIZE = 256  # Increased for faster training
+NCF_EPOCHS = 10  # Reduced for faster results
+HYBRID_EPOCHS = 5  # Reduced for faster results
+LEARNING_RATE = 0.001  # Increased for faster convergence
 WEIGHT_DECAY = 1e-4  # Increased for better regularization
 DROPOUT = 0.2  # Added dropout
 
