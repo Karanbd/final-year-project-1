@@ -40,187 +40,10 @@
         overflow-x: hidden;
       }
 
-      /* Login Page Styles */
-      .auth-container {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        background: linear-gradient(
-          180deg,
-          #2a0845 0%,
-          #6441a5 50%,
-          #2a0845 100%
-        );
-        padding: 2rem;
-      }
-
-      .auth-logo {
-        text-align: center;
-        margin-bottom: 2rem;
-      }
-
-      .auth-logo i {
-        font-size: 3rem;
-        color: var(--spotify-green);
-      }
-
-      .auth-box {
-        max-width: 450px;
-        margin: 0 auto;
-        width: 100%;
-        background: var(--spotify-dark);
-        border-radius: 8px;
-        padding: 2rem;
-        box-shadow: 0 16px 24px rgba(0, 0, 0, 0.4);
-      }
-
-      .auth-title {
-        text-align: center;
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin-bottom: 2rem;
-      }
-
-      .auth-subtitle {
-        text-align: center;
-        color: var(--spotify-text-secondary);
-        margin-bottom: 1.5rem;
-        font-size: 0.875rem;
-      }
-
-      .auth-form {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      .form-label {
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--spotify-text-secondary);
-      }
-
-      .form-input {
-        background: transparent;
-        border: 1px solid var(--spotify-text-muted);
-        border-radius: 4px;
-        padding: 0.875rem 1rem;
-        color: var(--spotify-text);
-        font-size: 1rem;
-        font-family: inherit;
-        transition: all 0.2s ease;
-      }
-
-      .form-input:focus {
-        outline: none;
-        border-color: var(--spotify-text);
-      }
-
-      .form-input::placeholder {
-        color: var(--spotify-text-muted);
-      }
-
-      .auth-btn {
-        background: var(--spotify-green);
-        border: none;
-        border-radius: 500px;
-        padding: 0.875rem 2rem;
-        color: var(--spotify-black);
-        font-size: 0.875rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        margin-top: 1rem;
-      }
-
-      .auth-btn:hover {
-        transform: scale(1.02);
-        background: var(--primary-hover);
-      }
-
-      .auth-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-      }
-
-      .auth-btn.secondary {
-        background: transparent;
-        border: 1px solid var(--spotify-text-muted);
-        color: var(--spotify-text);
-      }
-
-      .auth-btn.secondary:hover {
-        border-color: var(--spotify-text);
-      }
-
-      .auth-divider {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin: 1.5rem 0;
-        color: var(--spotify-text-muted);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-      }
-
-      .auth-divider::before,
-      .auth-divider::after {
-        content: "";
-        flex: 1;
-        height: 1px;
-        background: var(--spotify-text-muted);
-      }
-
-      .auth-link {
-        text-align: center;
-        margin-top: 1.5rem;
-        color: var(--spotify-text-secondary);
-        font-size: 0.875rem;
-      }
-
-      .auth-link a {
-        color: var(--spotify-text);
-        text-decoration: none;
-        font-weight: 600;
-      }
-
-      .auth-link a:hover {
-        text-decoration: underline;
-      }
-
-      .auth-error {
-        background: #e91429;
-        color: white;
-        padding: 0.75rem 1rem;
-        border-radius: 4px;
-        font-size: 0.875rem;
-        text-align: center;
-        display: none;
-      }
-
-      .auth-error.show {
-        display: block;
-      }
-
       /* Main App Layout */
       .app-container {
-        display: none;
-        min-height: 100vh;
-      }
-
-      .app-container.active {
         display: flex;
+        min-height: 100vh;
       }
 
       /* Sidebar */
@@ -263,6 +86,7 @@
         font-weight: 600;
         font-size: 0.875rem;
         transition: color 0.2s ease;
+        cursor: pointer;
       }
 
       .sidebar-link:hover,
@@ -319,35 +143,6 @@
 
       .nav-arrow:hover {
         background: rgba(0, 0, 0, 0.9);
-      }
-
-      .user-menu {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        background: rgba(0, 0, 0, 0.7);
-        border-radius: 500px;
-        padding: 0.25rem;
-        padding-right: 1rem;
-        cursor: pointer;
-      }
-
-      .user-avatar {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: var(--spotify-green);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.75rem;
-        color: var(--spotify-black);
-      }
-
-      .user-name {
-        font-weight: 600;
-        font-size: 0.875rem;
       }
 
       /* Cards */
@@ -935,34 +730,6 @@
         cursor: pointer;
       }
 
-      /* YouTube Player */
-      .youtube-container {
-        display: none;
-      }
-
-      .player-thumb {
-        position: relative;
-        overflow: hidden;
-      }
-
-      .player-thumb img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .player-thumb .youtube-badge {
-        position: absolute;
-        bottom: 4px;
-        right: 4px;
-        background: #ff0000;
-        color: white;
-        font-size: 8px;
-        padding: 2px 4px;
-        border-radius: 2px;
-        font-weight: 600;
-      }
-
       /* Stats */
       .stats-row {
         display: grid;
@@ -1051,6 +818,141 @@
         }
       }
 
+      /* Search Container */
+      .search-container {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .search-box {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        background: var(--spotify-dark-gray);
+        border-radius: 500px;
+        padding: 0.75rem 1.5rem;
+        gap: 0.75rem;
+      }
+
+      .search-box i {
+        color: var(--spotify-text-secondary);
+        font-size: 1rem;
+      }
+
+      .search-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--spotify-text);
+        font-size: 1rem;
+        font-family: inherit;
+        outline: none;
+      }
+
+      .search-input::placeholder {
+        color: var(--spotify-text-muted);
+      }
+
+      .search-btn {
+        background: var(--spotify-green);
+        border: none;
+        border-radius: 500px;
+        padding: 0.75rem 2rem;
+        color: var(--spotify-black);
+        font-size: 0.875rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .search-btn:hover {
+        background: var(--primary-hover);
+        transform: scale(1.02);
+      }
+
+      .search-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .search-results {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .search-result-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        background: var(--spotify-dark-gray);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      .search-result-item:hover {
+        background: var(--spotify-light-gray);
+      }
+
+      .search-result-thumb {
+        width: 48px;
+        height: 48px;
+        border-radius: 4px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .search-result-thumb i {
+        color: white;
+      }
+
+      .search-result-info {
+        flex: 1;
+      }
+
+      .search-result-info h4 {
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+      }
+
+      .search-result-info p {
+        color: var(--spotify-text-secondary);
+        font-size: 0.75rem;
+      }
+
+      .search-result-play {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--spotify-green);
+        border: none;
+        color: var(--spotify-black);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: all 0.2s ease;
+      }
+
+      .search-result-item:hover .search-result-play {
+        opacity: 1;
+      }
+
+      .search-result-play:hover {
+        transform: scale(1.1);
+      }
+
       /* Responsive */
       @media (max-width: 768px) {
         .sidebar {
@@ -1082,92 +984,6 @@
     </style>
   </head>
   <body>
-    <!-- Auth Section -->
-    <div class="auth-container" id="auth-section">
-      <div class="auth-logo">
-        <i class="fab fa-spotify"></i>
-      </div>
-
-      <!-- Login Form -->
-      <div class="auth-box" id="login-box">
-        <h1 class="auth-title">Log in to Spotify</h1>
-        <div class="auth-error" id="login-error"></div>
-        <form class="auth-form" id="login-form">
-          <div class="form-group">
-            <label class="form-label">Username</label>
-            <input
-              type="text"
-              class="form-input"
-              id="login-username"
-              placeholder="Enter your username"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password</label>
-            <input
-              type="password"
-              class="form-input"
-              id="login-password"
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-          <button type="submit" class="auth-btn" id="login-btn">Log In</button>
-        </form>
-        <div class="auth-divider">or</div>
-        <button class="auth-btn secondary" id="show-signup">Sign Up</button>
-        <p class="auth-link">
-          Don't have an account?
-          <a href="#" id="link-signup">Sign up for Spotify</a>
-        </p>
-      </div>
-
-      <!-- Signup Form -->
-      <div class="auth-box" id="signup-box" style="display: none">
-        <h1 class="auth-title">Create account</h1>
-        <p class="auth-subtitle">It's free and easy to get started.</p>
-        <div class="auth-error" id="signup-error"></div>
-        <form class="auth-form" id="signup-form">
-          <div class="form-group">
-            <label class="form-label">Username</label>
-            <input
-              type="text"
-              class="form-input"
-              id="signup-username"
-              placeholder="Choose a username"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email</label>
-            <input
-              type="email"
-              class="form-input"
-              id="signup-email"
-              placeholder="Enter your email"
-            />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password</label>
-            <input
-              type="password"
-              class="form-input"
-              id="signup-password"
-              placeholder="Create a password"
-              required
-            />
-          </div>
-          <button type="submit" class="auth-btn" id="signup-btn">
-            Sign Up
-          </button>
-        </form>
-        <p class="auth-link">
-          Already have an account? <a href="#" id="link-login">Log in</a>
-        </p>
-      </div>
-    </div>
-
     <!-- Main App -->
     <div class="app-container" id="app-section">
       <!-- Sidebar -->
@@ -1176,15 +992,15 @@
           <i class="fab fa-spotify"></i>
         </div>
         <nav class="sidebar-nav">
-          <a href="#" class="sidebar-link active">
+          <a href="#" class="sidebar-link active" id="nav-home">
             <i class="fas fa-home"></i>
             Home
           </a>
-          <a href="#" class="sidebar-link">
+          <a href="#" class="sidebar-link" id="nav-search">
             <i class="fas fa-search"></i>
             Search
           </a>
-          <a href="#" class="sidebar-link">
+          <a href="#" class="sidebar-link" id="nav-library">
             <i class="fas fa-book"></i>
             Your Library
           </a>
@@ -1202,7 +1018,6 @@
         </nav>
         <div class="sidebar-divider"></div>
         <nav class="sidebar-nav" id="playlist-nav">
-          <!-- Playlists will be added here -->
         </nav>
       </aside>
 
@@ -1217,11 +1032,6 @@
             <button class="nav-arrow">
               <i class="fas fa-chevron-right"></i>
             </button>
-          </div>
-          <div class="user-menu" id="user-menu">
-            <div class="user-avatar" id="user-avatar">U</div>
-            <span class="user-name" id="user-name">User</span>
-            <i class="fas fa-caret-down"></i>
           </div>
         </div>
 
@@ -1327,14 +1137,36 @@
                 <span>Duration</span>
               </div>
               <div id="track-items">
-                <!-- Tracks will be added here -->
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Section Title -->
-        <div class="section">
+        <!-- Search Section -->
+        <div class="section" id="search-section" style="display: none;">
+          <div class="section-header">
+            <h2 class="section-title">Search Songs</h2>
+          </div>
+          <div class="search-container">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                class="search-input"
+                id="search-input"
+                placeholder="Search for songs..."
+              />
+            </div>
+            <button class="search-btn" id="search-btn">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+          <div class="search-results" id="search-results">
+          </div>
+        </div>
+
+        <!-- Home Section -->
+        <div class="section" id="home-section">
           <div class="section-header">
             <h2 class="section-title">Made For You</h2>
             <span class="section-more">Show all</span>
@@ -1430,8 +1262,6 @@
       const API_BASE = "http://localhost:5000";
 
       // State
-      let isLoggedIn = false;
-      let currentUser = null;
       let currentRecommendations = [];
       let selectedUserId = 0;
       let selectedK = 20;
@@ -1448,12 +1278,7 @@
       let youtubeVideoInfo = {};
 
       // DOM Elements
-      const authSection = document.getElementById("auth-section");
       const appSection = document.getElementById("app-section");
-      const loginBox = document.getElementById("login-box");
-      const signupBox = document.getElementById("signup-box");
-      const loginForm = document.getElementById("login-form");
-      const signupForm = document.getElementById("signup-form");
       const userSelect = document.getElementById("user-select");
       const kSlider = document.getElementById("k-slider");
       const sliderValue = document.getElementById("slider-value");
@@ -1465,43 +1290,13 @@
       const playlistPlayBtn = document.getElementById("playlist-play-btn");
 
       // Initialize
-      async function init() {
-        await checkSession();
+      function init() {
         setupEventListeners();
-      }
-
-      // Check Session
-      async function checkSession() {
-        try {
-          const response = await fetch(`${API_BASE}/api/check-session`);
-          const data = await response.json();
-          if (data.logged_in) {
-            showApp(data.username);
-          }
-        } catch (error) {
-          console.error("Session check failed:", error);
-        }
+        loadStats();
       }
 
       // Setup Event Listeners
       function setupEventListeners() {
-        // Toggle auth forms
-        document
-          .getElementById("show-signup")
-          .addEventListener("click", showSignup);
-        document
-          .getElementById("link-signup")
-          .addEventListener("click", showSignup);
-        document
-          .getElementById("link-login")
-          .addEventListener("click", showLogin);
-
-        // Login
-        loginForm.addEventListener("submit", handleLogin);
-
-        // Signup
-        signupForm.addEventListener("submit", handleSignup);
-
         // Slider
         kSlider.addEventListener("input", (e) => {
           selectedK = parseInt(e.target.value);
@@ -1521,140 +1316,136 @@
           .getElementById("download-btn")
           .addEventListener("click", downloadCSV);
 
-        // User menu click (logout)
-        document.getElementById("user-menu").addEventListener("click", () => {
-          if (confirm("Log out?")) {
-            logout();
-          }
-        });
-
         // Playlist play button
         playlistPlayBtn.addEventListener("click", playAllTracks);
 
         // Play/Pause button
         playPauseBtn.addEventListener("click", togglePlayPause);
+
+        // Sidebar navigation
+        document.getElementById("nav-home").addEventListener("click", (e) => {
+          e.preventDefault();
+          showHome();
+        });
+
+        document.getElementById("nav-search").addEventListener("click", (e) => {
+          e.preventDefault();
+          showSearch();
+        });
+
+        document.getElementById("nav-library").addEventListener("click", (e) => {
+          e.preventDefault();
+          showLibrary();
+        });
+
+        // Search button
+        document.getElementById("search-btn").addEventListener("click", performSearch);
+        
+        // Search input enter key
+        document.getElementById("search-input").addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            performSearch();
+          }
+        });
       }
 
-      // Show Login/Signup
-      function showLogin(e) {
-        if (e) e.preventDefault();
-        loginBox.style.display = "block";
-        signupBox.style.display = "none";
-        hideAlert();
+      // Navigation functions
+      function showHome() {
+        document.getElementById("nav-home").classList.add("active");
+        document.getElementById("nav-search").classList.remove("active");
+        document.getElementById("nav-library").classList.remove("active");
+        
+        document.getElementById("home-section").style.display = "block";
+        document.getElementById("search-section").style.display = "none";
+        document.getElementById("results-container").classList.remove("active");
       }
 
-      function showSignup(e) {
-        if (e) e.preventDefault();
-        loginBox.style.display = "none";
-        signupBox.style.display = "block";
-        hideAlert();
+      function showSearch() {
+        document.getElementById("nav-home").classList.remove("active");
+        document.getElementById("nav-search").classList.add("active");
+        document.getElementById("nav-library").classList.remove("active");
+        
+        document.getElementById("home-section").style.display = "none";
+        document.getElementById("search-section").style.display = "block";
+        document.getElementById("results-container").classList.remove("active");
       }
 
-      // Handle Login
-      async function handleLogin(e) {
-        e.preventDefault();
-        const username = document.getElementById("login-username").value.trim();
-        const password = document.getElementById("login-password").value;
+      function showLibrary() {
+        showAlert("Your Library - Coming soon!");
+        showHome();
+      }
 
-        if (!username || !password) {
-          showAlert("Please enter username and password");
+      // Perform Search
+      async function performSearch() {
+        const searchInput = document.getElementById("search-input");
+        const searchResults = document.getElementById("search-results");
+        const searchBtn = document.getElementById("search-btn");
+        const query = searchInput.value.trim();
+
+        if (!query) {
+          showAlert("Please enter a search term");
           return;
         }
 
-        const btn = document.getElementById("login-btn");
-        btn.disabled = true;
-        btn.innerHTML = '<span class="loading"></span>';
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<span class="loading"></span>';
 
         try {
-          const response = await fetch(`${API_BASE}/api/login`, {
+          const response = await fetch(`${API_BASE}/api/search-youtube`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({
+              song_name: query,
+              artist: null,
+            }),
           });
 
-          const data = await response.json();
-
           if (response.ok) {
-            showApp(data.username);
+            const data = await response.json();
+            displaySearchResults(data);
           } else {
-            showAlert(data.error || "Login failed");
+            showAlert("No results found");
           }
         } catch (error) {
-          showAlert("Connection error");
+          showAlert("Search failed. Please try again.");
         } finally {
-          btn.disabled = false;
-          btn.textContent = "Log In";
+          searchBtn.disabled = false;
+          searchBtn.innerHTML = '<i class="fas fa-search"></i> Search';
         }
       }
 
-      // Handle Signup
-      async function handleSignup(e) {
-        e.preventDefault();
-        const username = document
-          .getElementById("signup-username")
-          .value.trim();
-        const email = document.getElementById("signup-email").value.trim();
-        const password = document.getElementById("signup-password").value;
+      // Display Search Results
+      function displaySearchResults(data) {
+        const searchResults = document.getElementById("search-results");
+        searchResults.innerHTML = "";
 
-        if (!username || !password) {
-          showAlert("Please enter username and password");
-          return;
-        }
+        if (data.video_id) {
+          const resultItem = document.createElement("div");
+          resultItem.className = "search-result-item";
+          resultItem.innerHTML = `
+            <div class="search-result-thumb">
+              <i class="fas fa-music"></i>
+            </div>
+            <div class="search-result-info">
+              <h4>${data.title || "Unknown Title"}</h4>
+              <p>${data.channel || "YouTube"}</p>
+            </div>
+            <button class="search-result-play"><i class="fas fa-play"></i></button>
+          `;
 
-        const btn = document.getElementById("signup-btn");
-        btn.disabled = true;
-        btn.innerHTML = '<span class="loading"></span>';
-
-        try {
-          const response = await fetch(`${API_BASE}/api/register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, email, password }),
+          resultItem.addEventListener("click", () => {
+            if (data.video_id) {
+              loadYouTubePlayer(data.video_id);
+              playerBar.classList.add("active");
+              document.getElementById("player-title").textContent = data.title || "Now Playing";
+              document.getElementById("player-artist").textContent = data.channel || "YouTube";
+            }
           });
 
-          const data = await response.json();
-
-          if (response.ok) {
-            showAlert("Account created! Please log in.", "success");
-            showLogin();
-          } else {
-            showAlert(data.error || "Registration failed");
-          }
-        } catch (error) {
-          showAlert("Connection error");
-        } finally {
-          btn.disabled = false;
-          btn.textContent = "Sign Up";
+          searchResults.appendChild(resultItem);
+        } else {
+          searchResults.innerHTML = '<p style="color: var(--spotify-text-secondary);">No results found. Try a different search term.</p>';
         }
-      }
-
-      // Logout
-      async function logout() {
-        try {
-          await fetch(`${API_BASE}/api/logout`, { method: "POST" });
-        } catch (error) {}
-
-        isLoggedIn = false;
-        currentUser = null;
-        authSection.style.display = "flex";
-        appSection.classList.remove("active");
-        stopPlayback();
-      }
-
-      // Show App
-      async function showApp(username) {
-        currentUser = username;
-        isLoggedIn = true;
-
-        authSection.style.display = "none";
-        appSection.classList.add("active");
-
-        document.getElementById("user-name").textContent = username;
-        document.getElementById("user-avatar").textContent = username
-          .charAt(0)
-          .toUpperCase();
-
-        await loadStats();
       }
 
       // Show Alert
@@ -1718,7 +1509,7 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               user_id: selectedUserId,
-              model_type: "hybrid", // Always use hybrid
+              model_type: "hybrid",
               k: selectedK,
             }),
           });
@@ -1785,7 +1576,6 @@
                     <span class="track-duration">${duration}</span>
                 `;
 
-          // Add click handler for playing this track
           track.addEventListener("click", () => playTrack(index));
 
           trackItems.appendChild(track);
@@ -1797,23 +1587,17 @@
         currentTrackIndex = index;
         const track = currentRecommendations[index];
 
-        // Show player bar
         playerBar.classList.add("active");
 
-        // Update player info
-        document.getElementById("player-title").textContent =
-          `Track #${track.song_id}`;
-        document.getElementById("player-artist").textContent =
-          `Match Score: ${(track.score * 100).toFixed(1)}%`;
+        document.getElementById("player-title").textContent = `Track #${track.song_id}`;
+        document.getElementById("player-artist").textContent = `Match Score: ${(track.score * 100).toFixed(1)}%`;
 
-        // Search for YouTube video and play
         searchAndPlayYouTube(track.song_id);
       }
 
       // Search YouTube and play video
       async function searchAndPlayYouTube(songId) {
         try {
-          // Try to search for the song on YouTube
           const response = await fetch(`${API_BASE}/api/search-youtube`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1829,13 +1613,9 @@
               currentVideoId = videoData.video_id;
               youtubeVideoInfo[songId] = videoData;
 
-              // Update player info with YouTube video details
-              document.getElementById("player-title").textContent =
-                videoData.title || `Track #${songId}`;
-              document.getElementById("player-artist").textContent =
-                videoData.channel || "YouTube";
+              document.getElementById("player-title").textContent = videoData.title || `Track #${songId}`;
+              document.getElementById("player-artist").textContent = videoData.channel || "YouTube";
 
-              // Load YouTube player
               loadYouTubePlayer(videoData.video_id);
               return;
             }
@@ -1844,7 +1624,6 @@
           console.log("YouTube search failed, using demo mode");
         }
 
-        // Fallback to demo mode if no YouTube video found
         isPlaying = true;
         updatePlayPauseButton();
         startProgressSimulation();
@@ -1855,7 +1634,6 @@
         if (youtubePlayer) {
           youtubePlayer.loadVideoById(videoId);
         } else {
-          // Create player if not exists
           youtubePlayer = new YT.Player("youtube-player-hidden", {
             height: "200",
             width: "200",
@@ -1879,7 +1657,6 @@
       // YouTube player state change handler
       function onPlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
-          // Play next track when video ends
           if (currentTrackIndex < currentRecommendations.length - 1) {
             playTrack(currentTrackIndex + 1);
           } else {
@@ -1930,7 +1707,6 @@
         let progress = 0;
         progressInterval = setInterval(() => {
           if (progress >= 100) {
-            // Next track
             if (currentTrackIndex < currentRecommendations.length - 1) {
               playTrack(currentTrackIndex + 1);
             } else {
@@ -1938,16 +1714,13 @@
             }
           } else {
             progress += 0.5;
-            document.getElementById("progress-fill").style.width =
-              progress + "%";
+            document.getElementById("progress-fill").style.width = progress + "%";
 
-            // Update time display
-            const totalSeconds = 180; // 3 minutes
+            const totalSeconds = 180;
             const currentSeconds = Math.floor((progress / 100) * totalSeconds);
             const mins = Math.floor(currentSeconds / 60);
             const secs = currentSeconds % 60;
-            document.getElementById("current-time").textContent =
-              `${mins}:${secs.toString().padStart(2, "0")}`;
+            document.getElementById("current-time").textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
           }
         }, 100);
       }
