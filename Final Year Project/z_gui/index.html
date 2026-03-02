@@ -1377,6 +1377,9 @@
       </main>
     </div>
 
+    <!-- Hidden YouTube Player Container -->
+    <div id="youtube-player-hidden" style="display: none"></div>
+
     <!-- Player Bar -->
     <div class="player-bar" id="player-bar">
       <div class="player-track">
@@ -1803,13 +1806,92 @@
         document.getElementById("player-artist").textContent =
           `Match Score: ${(track.score * 100).toFixed(1)}%`;
 
-        // For demo purposes - just show playing state
-        // In production, you would load actual audio files
+        // Search for YouTube video and play
+        searchAndPlayYouTube(track.song_id);
+      }
+
+      // Search YouTube and play video
+      async function searchAndPlayYouTube(songId) {
+        try {
+          // Try to search for the song on YouTube
+          const response = await fetch(`${API_BASE}/api/search-youtube`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              song_name: `Track ${songId}`,
+              artist: null,
+            }),
+          });
+
+          if (response.ok) {
+            const videoData = await response.json();
+            if (videoData.video_id) {
+              currentVideoId = videoData.video_id;
+              youtubeVideoInfo[songId] = videoData;
+
+              // Update player info with YouTube video details
+              document.getElementById("player-title").textContent =
+                videoData.title || `Track #${songId}`;
+              document.getElementById("player-artist").textContent =
+                videoData.channel || "YouTube";
+
+              // Load YouTube player
+              loadYouTubePlayer(videoData.video_id);
+              return;
+            }
+          }
+        } catch (error) {
+          console.log("YouTube search failed, using demo mode");
+        }
+
+        // Fallback to demo mode if no YouTube video found
         isPlaying = true;
         updatePlayPauseButton();
-
-        // Simulate progress
         startProgressSimulation();
+      }
+
+      // Load YouTube IFrame Player
+      function loadYouTubePlayer(videoId) {
+        if (youtubePlayer) {
+          youtubePlayer.loadVideoById(videoId);
+        } else {
+          // Create player if not exists
+          youtubePlayer = new YT.Player("youtube-player-hidden", {
+            height: "200",
+            width: "200",
+            videoId: videoId,
+            playerVars: {
+              controls: 1,
+              showinfo: 0,
+              rel: 0,
+              modestbranding: 1,
+              autoplay: 1,
+            },
+            events: {
+              onStateChange: onPlayerStateChange,
+            },
+          });
+        }
+        isPlaying = true;
+        updatePlayPauseButton();
+      }
+
+      // YouTube player state change handler
+      function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+          // Play next track when video ends
+          if (currentTrackIndex < currentRecommendations.length - 1) {
+            playTrack(currentTrackIndex + 1);
+          } else {
+            stopPlayback();
+          }
+        } else if (event.data === YT.PlayerState.PLAYING) {
+          isPlaying = true;
+          updatePlayPauseButton();
+        } else if (event.data === YT.PlayerState.PAUSED) {
+          isPlaying = false;
+          updatePlayPauseButton();
+        }
       }
 
       // Play All Tracks
