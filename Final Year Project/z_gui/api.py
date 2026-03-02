@@ -13,6 +13,62 @@ import json
 from pathlib import Path
 from sklearn.preprocessing import LabelEncoder
 
+# YouTube API
+from googleapiclient.discovery import build
+
+# YouTube API Configuration
+# Get API key from environment variable or use a default (user should set their own)
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', '')
+
+def get_youtube_client():
+    """Initialize and return YouTube API client."""
+    if not YOUTUBE_API_KEY:
+        return None
+    try:
+        return build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+    except Exception as e:
+        print(f"Error building YouTube client: {e}")
+        return None
+
+
+def search_youtube_video(song_name, artist=None):
+    """
+    Search for a music video on YouTube.
+    Returns video ID and details.
+    """
+    youtube = get_youtube_client()
+    if not youtube:
+        return None
+    
+    # Build search query - add "Provided to YouTube by" to force Art Track results
+    if artist:
+        search_query = f"{song_name} {artist} official audio"
+    else:
+        search_query = f"{song_name} official audio"
+    
+    try:
+        request = youtube.search().list(
+            q=search_query,
+            part="snippet",
+            type="video",
+            videoCategoryId="10",  # Category 10 is Music
+            maxResults=1
+        )
+        response = request.execute()
+        
+        if response['items']:
+            item = response['items'][0]
+            return {
+                'video_id': item['id']['videoId'],
+                'title': item['snippet']['title'],
+                'thumbnail': item['snippet']['thumbnails']['high']['url'],
+                'channel': item['snippet']['channelTitle']
+            }
+    except Exception as e:
+        print(f"YouTube search error: {e}")
+    
+    return None
+
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -317,6 +373,45 @@ def user_history():
         })
 
     return jsonify({'history': history})
+
+
+# YouTube Search Route
+@app.route('/api/search-youtube', methods=['POST'])
+def search_youtube():
+    """Search for a song on YouTube and return video details."""
+    data = request.json
+    song_name = data.get('song_name', '')
+    artist = data.get('artist', None)
+    
+    if not song_name:
+        return jsonify({'error': 'Song name is required'}), 400
+    
+    result = search_youtube_video(song_name, artist)
+    
+    if result:
+        return jsonify(result)
+    else:
+        return jsonify({'error': 'No video found or YouTube API not configured'}), 404
+
+
+@app.route('/api/get-youtube-video', methods=['GET'])
+def get_youtube_video():
+    """Get YouTube video details for a list of songs."""
+    song_names = request.args.getlist('songs')
+    
+    if not song_names:
+        return jsonify({'error': 'No songs provided'}), 400
+    
+    results = []
+    for song_name in song_names[:10]:  # Limit to 10 songs
+        video_info = search_youtube_video(song_name)
+        if video_info:
+            results.append({
+                'song_name': song_name,
+                **video_info
+            })
+    
+    return jsonify({'results': results})
 
 
 if __name__ == '__main__':
