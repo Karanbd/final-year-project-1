@@ -21,12 +21,12 @@ load_dotenv()
 from googleapiclient.discovery import build
 
 # YouTube API Configuration
-# Get API key from environment variable or use a default (user should set their own)
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', '')
 
 def get_youtube_client():
     """Initialize and return YouTube API client."""
     if not YOUTUBE_API_KEY:
+        print("Warning: YOUTUBE_API_KEY not found in environment variables")
         return None
     try:
         return build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
@@ -35,43 +35,45 @@ def get_youtube_client():
         return None
 
 
-def search_youtube_video(song_name, artist=None):
+def search_youtube_video(song_name, artist=None, max_results=5):
     """
-    Search for a music video on YouTube.
-    Returns video ID and details.
+    Search for music videos on YouTube.
+    Returns list of video details.
     """
     youtube = get_youtube_client()
     if not youtube:
         return None
-    
-    # Build search query - add "Provided to YouTube by" to force Art Track results
+
+    # Build search query
     if artist:
         search_query = f"{song_name} {artist} official audio"
     else:
         search_query = f"{song_name} official audio"
-    
+
     try:
         request = youtube.search().list(
             q=search_query,
             part="snippet",
             type="video",
             videoCategoryId="10",  # Category 10 is Music
-            maxResults=1
+            maxResults=max_results
         )
         response = request.execute()
-        
-        if response['items']:
-            item = response['items'][0]
-            return {
-                'video_id': item['id']['videoId'],
-                'title': item['snippet']['title'],
-                'thumbnail': item['snippet']['thumbnails']['high']['url'],
-                'channel': item['snippet']['channelTitle']
-            }
+
+        results = []
+        if response.get('items'):
+            for item in response['items']:
+                results.append({
+                    'video_id': item['id']['videoId'],
+                    'title': item['snippet']['title'],
+                    'thumbnail': item['snippet']['thumbnails']['high']['url'],
+                    'channel': item['snippet']['channelTitle']
+                })
+        return results if results else None
     except Exception as e:
         print(f"YouTube search error: {e}")
-    
-    return None
+        return None
+
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -382,7 +384,7 @@ def user_history():
 # YouTube Search Route
 @app.route('/api/search-youtube', methods=['POST'])
 def search_youtube():
-    """Search for a song on YouTube and return video details."""
+    """Search for songs on YouTube and return video details."""
     data = request.json
     song_name = data.get('song_name', '')
     artist = data.get('artist', None)
@@ -390,19 +392,19 @@ def search_youtube():
     if not song_name:
         return jsonify({'error': 'Song name is required'}), 400
     
-    result = search_youtube_video(song_name, artist)
+    results = search_youtube_video(song_name, artist, max_results=10)
     
-    if result:
-        return jsonify(result)
+    if results:
+        return jsonify({'results': results})
     else:
-        return jsonify({'error': 'No video found or YouTube API not configured'}), 404
+        return jsonify({'error': 'No videos found or YouTube API not configured'}), 404
 
 
 @app.route('/api/content-based-recommend', methods=['POST'])
 def content_based_recommend():
     """
-    Content-based recommendation: Search for a song and get 20 similar songs
-    using the hybrid model's audio embeddings.
+    Content-based recommendation: Search for a song and get similar songs
+    using the hybrid model's audio embeddings. Also fetches YouTube videos.
     """
     global models, embeddings_dict, interactions_df, device, song_encoder
     
@@ -449,22 +451,20 @@ def content_based_recommend():
         
         # Get the hybrid model's audio embedding layer
         hybrid_model = models['hybrid']
-        audio_embeddings = hybrid_model.item_embedding.weight.data  # [num_items, audio_embedding_dim]
+        audio_embeddings = hybrid_model.item_embedding.weight.data
         
         # Project audio embeddings using the model's projection layer
         with torch.no_grad():
             projected_embeddings = hybrid_model.audio_projection(audio_embeddings)
             projected_embeddings = F.normalize(projected_embeddings, p=2, dim=1)
         
-        # Try to find the queried song in the dataset by searching for partial matches
-        # Get all song IDs from the encoder
+        # Try to find the queried song in the dataset
         query_song_id = None
         song_name_lower = song_name.lower()
         
         # Search through encoder classes to find a match
         for idx, song_id in enumerate(song_encoder.classes_):
             song_id_str = str(song_id).lower()
-            # Try to match the song name (without extension) with the song ID
             if song_name_lower in song_id_str or song_id_str in song_name_lower:
                 query_song_id = idx
                 break
@@ -472,38 +472,53 @@ def content_based_recommend():
         # Use the found song's embedding as query, or fallback to first song
         if query_song_id is not None:
             query_embedding = projected_embeddings[query_song_id:query_song_id+1]
-            print(f"Found query song at index: {query_song_id}")
         else:
-            # Fallback: use first song as anchor (for demo)
             query_embedding = projected_embeddings[0:1]
-            print(f"Query song not found, using default anchor")
         
         # Compute cosine similarity between query and all songs
         similarities = torch.matmul(query_embedding, projected_embeddings.T)
         
-        # Get top-k similar songs (excluding the query song itself if we found it)
+        # Get top-k similar songs
         exclude_idx = query_song_id if query_song_id is not None else 0
         top_k_indices = torch.topk(similarities.squeeze(), k + 1).indices.cpu().numpy()
         
         # Filter out the query song and get top k
         recommendations = []
         for idx in top_k_indices:
-            if idx != exclude_idx:  # Exclude the query song
+            if idx != exclude_idx:
                 score = similarities[0, idx].item()
                 recommendations.append({
                     'song_id': int(idx),
-                    'score': float(score)
+                    'score': float(score),
+                    'youtube_video': None  # Will be filled below
                 })
                 if len(recommendations) >= k:
                     break
         
-        # Search YouTube to get info about the searched song
-        search_result = search_youtube_video(song_name, artist)
+        # Search YouTube for the query song
+        query_youtube_results = search_youtube_video(song_name, artist, max_results=1)
+        query_youtube = query_youtube_results[0] if query_youtube_results else None
+        
+        # For recommended songs, search YouTube for similar songs
+        # We'll use the query song name to get related videos
+        youtube_results = search_youtube_video(song_name, artist, max_results=k+5)
+        
+        # Assign YouTube videos to recommendations
+        if youtube_results:
+            for i, rec in enumerate(recommendations):
+                if i < len(youtube_results):
+                    rec['youtube_video'] = youtube_results[i]
+                else:
+                    # If we don't have enough YouTube results, try different search terms
+                    alt_query = f"music similar to {song_name}"
+                    alt_results = search_youtube_video(alt_query, None, max_results=1)
+                    if alt_results:
+                        rec['youtube_video'] = alt_results[0]
         
         return jsonify({
             'query_song': song_name,
             'query_song_id': int(exclude_idx) if query_song_id is not None else None,
-            'youtube_video': search_result,
+            'youtube_video': query_youtube,
             'recommendations': recommendations[:k]
         })
         
@@ -522,12 +537,12 @@ def get_youtube_video():
         return jsonify({'error': 'No songs provided'}), 400
     
     results = []
-    for song_name in song_names[:10]:  # Limit to 10 songs
-        video_info = search_youtube_video(song_name)
+    for song_name in song_names[:10]:
+        video_info = search_youtube_video(song_name, None, max_results=1)
         if video_info:
             results.append({
                 'song_name': song_name,
-                **video_info
+                **video_info[0]
             })
     
     return jsonify({'results': results})
@@ -539,4 +554,5 @@ if __name__ == '__main__':
     print("Data loaded successfully!")
     print(f"Device: {device}")
     print(f"Users registered: {len(users_db)}")
+    print(f"YouTube API configured: {'Yes' if YOUTUBE_API_KEY else 'No'}")
     app.run(debug=True, host='0.0.0.0', port=5000)
