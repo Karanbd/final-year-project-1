@@ -12,6 +12,8 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
       * {
         margin: 0;
@@ -1017,8 +1019,7 @@
           </a>
         </nav>
         <div class="sidebar-divider"></div>
-        <nav class="sidebar-nav" id="playlist-nav">
-        </nav>
+        <nav class="sidebar-nav" id="playlist-nav"></nav>
       </aside>
 
       <!-- Main Content -->
@@ -1136,14 +1137,13 @@
                 <span>Album</span>
                 <span>Duration</span>
               </div>
-              <div id="track-items">
-              </div>
+              <div id="track-items"></div>
             </div>
           </div>
         </div>
 
         <!-- Search Section -->
-        <div class="section" id="search-section" style="display: none;">
+        <div class="section" id="search-section" style="display: none">
           <div class="section-header">
             <h2 class="section-title">Search Songs</h2>
           </div>
@@ -1161,8 +1161,7 @@
               <i class="fas fa-search"></i> Search
             </button>
           </div>
-          <div class="search-results" id="search-results">
-          </div>
+          <div class="search-results" id="search-results"></div>
         </div>
 
         <!-- Home Section -->
@@ -1333,20 +1332,26 @@
           showSearch();
         });
 
-        document.getElementById("nav-library").addEventListener("click", (e) => {
-          e.preventDefault();
-          showLibrary();
-        });
+        document
+          .getElementById("nav-library")
+          .addEventListener("click", (e) => {
+            e.preventDefault();
+            showLibrary();
+          });
 
         // Search button
-        document.getElementById("search-btn").addEventListener("click", performSearch);
-        
+        document
+          .getElementById("search-btn")
+          .addEventListener("click", performSearch);
+
         // Search input enter key
-        document.getElementById("search-input").addEventListener("keypress", (e) => {
-          if (e.key === "Enter") {
-            performSearch();
-          }
-        });
+        document
+          .getElementById("search-input")
+          .addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+              performSearch();
+            }
+          });
       }
 
       // Navigation functions
@@ -1354,7 +1359,7 @@
         document.getElementById("nav-home").classList.add("active");
         document.getElementById("nav-search").classList.remove("active");
         document.getElementById("nav-library").classList.remove("active");
-        
+
         document.getElementById("home-section").style.display = "block";
         document.getElementById("search-section").style.display = "none";
         document.getElementById("results-container").classList.remove("active");
@@ -1364,7 +1369,7 @@
         document.getElementById("nav-home").classList.remove("active");
         document.getElementById("nav-search").classList.add("active");
         document.getElementById("nav-library").classList.remove("active");
-        
+
         document.getElementById("home-section").style.display = "none";
         document.getElementById("search-section").style.display = "block";
         document.getElementById("results-container").classList.remove("active");
@@ -1437,14 +1442,17 @@
             if (data.video_id) {
               loadYouTubePlayer(data.video_id);
               playerBar.classList.add("active");
-              document.getElementById("player-title").textContent = data.title || "Now Playing";
-              document.getElementById("player-artist").textContent = data.channel || "YouTube";
+              document.getElementById("player-title").textContent =
+                data.title || "Now Playing";
+              document.getElementById("player-artist").textContent =
+                data.channel || "YouTube";
             }
           });
 
           searchResults.appendChild(resultItem);
         } else {
-          searchResults.innerHTML = '<p style="color: var(--spotify-text-secondary);">No results found. Try a different search term.</p>';
+          searchResults.innerHTML =
+            '<p style="color: var(--spotify-text-secondary);">No results found. Try a different search term.</p>';
         }
       }
 
@@ -1589,8 +1597,10 @@
 
         playerBar.classList.add("active");
 
-        document.getElementById("player-title").textContent = `Track #${track.song_id}`;
-        document.getElementById("player-artist").textContent = `Match Score: ${(track.score * 100).toFixed(1)}%`;
+        document.getElementById("player-title").textContent =
+          `Track #${track.song_id}`;
+        document.getElementById("player-artist").textContent =
+          `Match Score: ${(track.score * 100).toFixed(1)}%`;
 
         searchAndPlayYouTube(track.song_id);
       }
@@ -1613,8 +1623,10 @@
               currentVideoId = videoData.video_id;
               youtubeVideoInfo[songId] = videoData;
 
-              document.getElementById("player-title").textContent = videoData.title || `Track #${songId}`;
-              document.getElementById("player-artist").textContent = videoData.channel || "YouTube";
+              document.getElementById("player-title").textContent =
+                videoData.title || `Track #${songId}`;
+              document.getElementById("player-artist").textContent =
+                videoData.channel || "YouTube";
 
               loadYouTubePlayer(videoData.video_id);
               return;
@@ -1714,13 +1726,15 @@
             }
           } else {
             progress += 0.5;
-            document.getElementById("progress-fill").style.width = progress + "%";
+            document.getElementById("progress-fill").style.width =
+              progress + "%";
 
             const totalSeconds = 180;
             const currentSeconds = Math.floor((progress / 100) * totalSeconds);
             const mins = Math.floor(currentSeconds / 60);
             const secs = currentSeconds % 60;
-            document.getElementById("current-time").textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+            document.getElementById("current-time").textContent =
+              `${mins}:${secs.toString().padStart(2, "0")}`;
           }
         }, 100);
       }
