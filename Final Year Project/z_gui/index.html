@@ -1692,19 +1692,28 @@
 
       // Toggle Play/Pause
       function togglePlayPause() {
-        if (!currentAudio && currentRecommendations.length > 0) {
+        if (youtubePlayer && youtubePlayer.playVideo) {
+          // Control YouTube player
+          if (isPlaying) {
+            youtubePlayer.pauseVideo();
+          } else {
+            youtubePlayer.playVideo();
+          }
+          isPlaying = !isPlaying;
+        } else if (!currentAudio && currentRecommendations.length > 0) {
+          // No YouTube player, start playing
           playTrack(currentTrackIndex);
           return;
-        }
-
-        isPlaying = !isPlaying;
-        updatePlayPauseButton();
-
-        if (isPlaying) {
-          startProgressSimulation();
         } else {
-          stopProgressSimulation();
+          // Fallback to simulation
+          isPlaying = !isPlaying;
+          if (isPlaying) {
+            startProgressSimulation();
+          } else {
+            stopProgressSimulation();
+          }
         }
+        updatePlayPauseButton();
       }
 
       // Update Play/Pause Button
