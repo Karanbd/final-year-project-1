@@ -13,6 +13,10 @@ import json
 from pathlib import Path
 from sklearn.preprocessing import LabelEncoder
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 # YouTube API
 from googleapiclient.discovery import build
 
@@ -452,30 +456,39 @@ def content_based_recommend():
             projected_embeddings = hybrid_model.audio_projection(audio_embeddings)
             projected_embeddings = F.normalize(projected_embeddings, p=2, dim=1)
         
-        # For demo: use a random query embedding (in production, extract from searched song)
-        # Since we can't easily get audio from YouTube, we'll use the mean of top popular songs
-        # or create a pseudo-query from similar songs in the dataset
+        # Try to find the queried song in the dataset by searching for partial matches
+        # Get all song IDs from the encoder
+        query_song_id = None
+        song_name_lower = song_name.lower()
         
-        # Search YouTube to get info about the searched song
-        search_result = search_youtube_video(song_name, artist)
+        # Search through encoder classes to find a match
+        for idx, song_id in enumerate(song_encoder.classes_):
+            song_id_str = str(song_id).lower()
+            # Try to match the song name (without extension) with the song ID
+            if song_name_lower in song_id_str or song_id_str in song_name_lower:
+                query_song_id = idx
+                break
         
-        # For content-based, we'll compute similarity between songs in the dataset
-        # and return the most similar ones (excluding any that might match the query)
-        
-        # Use the first song's embedding as a representative query (for demo)
-        # In production, this would extract audio from YouTube
-        query_embedding = projected_embeddings[0:1]  # Use first song as anchor
+        # Use the found song's embedding as query, or fallback to first song
+        if query_song_id is not None:
+            query_embedding = projected_embeddings[query_song_id:query_song_id+1]
+            print(f"Found query song at index: {query_song_id}")
+        else:
+            # Fallback: use first song as anchor (for demo)
+            query_embedding = projected_embeddings[0:1]
+            print(f"Query song not found, using default anchor")
         
         # Compute cosine similarity between query and all songs
         similarities = torch.matmul(query_embedding, projected_embeddings.T)
         
-        # Get top-k similar songs (excluding the query song itself)
+        # Get top-k similar songs (excluding the query song itself if we found it)
+        exclude_idx = query_song_id if query_song_id is not None else 0
         top_k_indices = torch.topk(similarities.squeeze(), k + 1).indices.cpu().numpy()
         
         # Filter out the query song and get top k
         recommendations = []
         for idx in top_k_indices:
-            if idx != 0:  # Exclude the anchor song
+            if idx != exclude_idx:  # Exclude the query song
                 score = similarities[0, idx].item()
                 recommendations.append({
                     'song_id': int(idx),
@@ -484,8 +497,12 @@ def content_based_recommend():
                 if len(recommendations) >= k:
                     break
         
+        # Search YouTube to get info about the searched song
+        search_result = search_youtube_video(song_name, artist)
+        
         return jsonify({
             'query_song': song_name,
+            'query_song_id': int(exclude_idx) if query_song_id is not None else None,
             'youtube_video': search_result,
             'recommendations': recommendations[:k]
         })
