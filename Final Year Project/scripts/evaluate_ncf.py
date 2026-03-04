@@ -49,9 +49,8 @@ ncf_model = NCF(
 ).to(device)
 
 # Load saved weights
-ncf_path = "C:/Users/admin/Desktop/Music/final-year-project/Final Year Project/ncf_model.pt"
-if os.path.exists(ncf_path):
-    ncf_model.load_state_dict(torch.load(ncf_path, map_location=device))
+if os.path.exists(config.NCF_MODEL_PATH):
+    ncf_model.load_state_dict(torch.load(config.NCF_MODEL_PATH, map_location=device))
     print("Loaded trained NCF model")
 else:
     print("No trained NCF model found!")
