@@ -57,28 +57,38 @@ def train_model(
     model: nn.Module,
     train_df: pd.DataFrame,
     num_epochs: int,
-    batch_size: int = 256,
-    lr: float = 0.001,
-    weight_decay: float = 1e-5,
+    batch_size: int = 512,
+    lr: float = 0.0005,
+    weight_decay: float = 1e-4,
     device: Optional[torch.device] = None,
     val_df: Optional[pd.DataFrame] = None,
-    patience: int = 3,
-    checkpoint_path: Optional[str] = None
+    patience: int = 7,
+    checkpoint_path: Optional[str] = None,
+    use_class_weights: bool = True,
+    positive_weight: float = 3.0,
+    label_smoothing: float = 0.1,
+    warmup_epochs: int = 3,
+    gradient_clip: float = 1.0
 ) -> nn.Module:
     """
-    Train a recommendation model.
+    Train a recommendation model with improved techniques.
     
     Args:
         model: PyTorch model
         train_df: Training DataFrame
         num_epochs: Number of training epochs
         batch_size: Batch size
-        learning_rate: Learning rate
+        lr: Learning rate
         weight_decay: Weight decay for regularization
         device: Device to train on
         val_df: Optional validation DataFrame
         patience: Early stopping patience
         checkpoint_path: Path to save best model
+        use_class_weights: Whether to use class weights
+        positive_weight: Weight for positive samples
+        label_smoothing: Label smoothing factor
+        warmup_epochs: Number of warmup epochs
+        gradient_clip: Gradient clipping threshold
         
     Returns:
         Trained model
@@ -90,19 +100,40 @@ def train_model(
     
     # Create dataset and dataloader
     dataset = MusicInteractionDataset(train_df)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     
-    # Loss and optimizer
-    criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=2
-    )
+    # Loss function with class weights and label smoothing
+    if use_class_weights:
+        # Calculate class weights
+        num_positive = (train_df['interaction'] == 1).sum()
+        num_negative = (train_df['interaction'] == 0).sum()
+        pos_weight = torch.tensor([num_negative / num_positive * positive_weight]).to(device)
+        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    else:
+        criterion = nn.BCELoss()
+    
+    # Optimizer with AdamW
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    
+    # Learning rate scheduler with warmup
+    if warmup_epochs > 0:
+        warmup_scheduler = optim.lr_scheduler.LinearLR(
+            optimizer, start_factor=0.1, end_factor=1.0, total_iters=warmup_epochs
+        )
+        main_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=3, min_lr=1e-6
+        )
+    else:
+        warmup_scheduler = None
+        main_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=3, min_lr=1e-6
+        )
     
     # Early stopping
     best_val_loss = float('inf')
     patience_counter = 0
     best_model_state = None
+    global_step = 0
     
     for epoch in range(num_epochs):
         # Training
@@ -117,15 +148,32 @@ def train_model(
             
             optimizer.zero_grad()
             preds = model(users, items)
-            loss = criterion(preds, labels)
+            
+            # Apply label smoothing to labels
+            if label_smoothing > 0:
+                smoothed_labels = labels * (1 - label_smoothing) + 0.5 * label_smoothing
+                loss = criterion(preds, smoothed_labels)
+            else:
+                loss = criterion(preds, labels)
             loss.backward()
+            
+            # Gradient clipping
+            if gradient_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clip)
+            
             optimizer.step()
             
             total_loss += loss.item()
             num_batches += 1
+            global_step += 1
         
         avg_loss = total_loss / num_batches
-        logger.info(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {avg_loss:.4f}")
+        current_lr = optimizer.param_groups[0]['lr']
+        logger.info(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {avg_loss:.4f}, LR: {current_lr:.6f}")
+        
+        # Learning rate warmup
+        if warmup_scheduler is not None and epoch < warmup_epochs:
+            warmup_scheduler.step()
         
         # Validation
         if val_df is not None:
@@ -150,8 +198,9 @@ def train_model(
             avg_val_loss = val_loss / val_batches
             logger.info(f"Epoch {epoch+1}/{num_epochs}, Val Loss: {avg_val_loss:.4f}")
             
-            # Learning rate scheduling
-            scheduler.step(avg_val_loss)
+            # Learning rate scheduling after warmup
+            if warmup_scheduler is None or epoch >= warmup_epochs:
+                main_scheduler.step(avg_val_loss)
             
             # Early stopping
             if avg_val_loss < best_val_loss - config.MIN_DELTA:
@@ -183,7 +232,7 @@ def run_ncf_pipeline(
     device: torch.device
 ) -> Tuple[NCF, Dict]:
     """
-    Run the NCF pipeline.
+    Run the NCF pipeline with improved training.
     
     Args:
         embeddings_dict: Dictionary of song embeddings
@@ -193,7 +242,7 @@ def run_ncf_pipeline(
         Tuple of (trained model, evaluation results)
     """
     logger.info("=" * 50)
-    logger.info("Running NCF Pipeline")
+    logger.info("Running NCF Pipeline - IMPROVED")
     logger.info("=" * 50)
     
     # Step 1: Create or load interactions
@@ -201,7 +250,7 @@ def run_ncf_pipeline(
         logger.info("Loading existing interactions...")
         df = pd.read_csv(config.INTERACTIONS_SAVE_PATH)
     else:
-        logger.info("Creating random interactions...")
+        logger.info("Creating random interactions with more songs per user...")
         df = create_random_interactions(
             embeddings_dict,
             num_users=config.NUM_USERS,
@@ -220,18 +269,30 @@ def run_ncf_pipeline(
     # Step 3: Train/test split
     train_df, test_df = train_test_split_by_user(df, test_ratio=config.TEST_RATIO)
     
-    # Step 4: Create negative samples
-    train_df = create_negative_samples(train_df, num_songs, config.NEGATIVE_SAMPLE_RATIO)
-    test_df = create_negative_samples(test_df, num_songs, config.NEGATIVE_SAMPLE_RATIO)
+    # Step 4: Create negative samples (with popularity-based if enabled)
+    if config.USE_POPULARITY_NEGATIVE:
+        logger.info("Using popularity-based negative sampling...")
+        item_popularity = get_item_popularity(train_df)
+        train_df = create_popularity_based_negative_samples(
+            train_df, num_songs, item_popularity, config.NEGATIVE_SAMPLE_RATIO
+        )
+        test_df = create_popularity_based_negative_samples(
+            test_df, num_songs, item_popularity, config.NEGATIVE_SAMPLE_RATIO
+        )
+    else:
+        train_df = create_negative_samples(train_df, num_songs, config.NEGATIVE_SAMPLE_RATIO)
+        test_df = create_negative_samples(test_df, num_songs, config.NEGATIVE_SAMPLE_RATIO)
+    
     logger.info(f"Train samples: {len(train_df)}, Test samples: {len(test_df)}")
     
-    # Step 5: Train NCF model
+    # Step 5: Train NCF model with improved settings
     ncf_model = NCF(
         num_users=num_users,
         num_items=num_songs,
         embedding_dim=config.EMBEDDING_DIM,
         hidden_dims=config.NCF_HIDDEN_DIMS,
-        dropout_rate=0.2
+        dropout_rate=config.DROPOUT,
+        use_layer_norm=True
     ).to(device)
     
     checkpoint_path = config.MODEL_CHECKPOINT_PATH.replace(".pt", "_ncf.pt")
@@ -244,12 +305,22 @@ def run_ncf_pipeline(
         weight_decay=config.WEIGHT_DECAY,
         device=device,
         patience=config.PATIENCE,
-        checkpoint_path=checkpoint_path
+        checkpoint_path=checkpoint_path,
+        use_class_weights=config.USE_CLASS_WEIGHTS,
+        positive_weight=config.POSITIVE_WEIGHT,
+        label_smoothing=config.LABEL_SMOOTHING,
+        warmup_epochs=config.WARMUP_EPOCHS,
+        gradient_clip=config.GRADIENT_CLIP
     )
     
-    # Step 6: Evaluate
+    # Step 6: Evaluate (excluding training items from recommendations)
     logger.info("Evaluating NCF model...")
-    results = evaluate_model(ncf_model, train_df, test_df, num_songs, k_values=[5, 10, 20], device=device)
+    results = evaluate_model(
+        ncf_model, train_df, test_df, num_songs, 
+        k_values=[5, 10, 20], 
+        device=device,
+        exclude_train_items=True  # Important fix!
+    )
     print_evaluation_results(results)
     
     # Save the trained NCF model
@@ -268,7 +339,7 @@ def run_hybrid_pipeline(
     ncf_train_df: pd.DataFrame = None
 ) -> Tuple[HybridModel, Dict]:
     """
-    Run the Hybrid pipeline.
+    Run the Hybrid pipeline with improved training.
     
     Args:
         embeddings_dict: Dictionary of song embeddings
@@ -281,7 +352,7 @@ def run_hybrid_pipeline(
         Tuple of (trained model, evaluation results)
     """
     logger.info("=" * 50)
-    logger.info("Running Hybrid Pipeline")
+    logger.info("Running Hybrid Pipeline - IMPROVED")
     logger.info("=" * 50)
     
     # Load audio embeddings
@@ -317,25 +388,37 @@ def run_hybrid_pipeline(
         num_users=num_users,
         num_items=num_songs,
         normalized_audio_embeddings=normalized_audio,
-        likes_per_user=30,
+        likes_per_user=config.MIN_SONGS_PER_USER,  # More songs per user
         random_seed=config.RANDOM_SEED
     )
     
     # Train/test split
     train_df, test_df = train_test_split_by_user(content_df, test_ratio=config.TEST_RATIO)
     
-    # Add negative samples
-    train_df = create_negative_samples(train_df, num_songs, config.NEGATIVE_SAMPLE_RATIO)
-    test_df = create_negative_samples(test_df, num_songs, config.NEGATIVE_SAMPLE_RATIO)
+    # Add negative samples (with popularity-based if enabled)
+    if config.USE_POPULARITY_NEGATIVE:
+        logger.info("Using popularity-based negative sampling...")
+        item_popularity = get_item_popularity(train_df)
+        train_df = create_popularity_based_negative_samples(
+            train_df, num_songs, item_popularity, config.NEGATIVE_SAMPLE_RATIO
+        )
+        test_df = create_popularity_based_negative_samples(
+            test_df, num_songs, item_popularity, config.NEGATIVE_SAMPLE_RATIO
+        )
+    else:
+        train_df = create_negative_samples(train_df, num_songs, config.NEGATIVE_SAMPLE_RATIO)
+        test_df = create_negative_samples(test_df, num_songs, config.NEGATIVE_SAMPLE_RATIO)
     
-    # Train Hybrid model
+    # Train Hybrid model with attention mechanism
     hybrid_model = HybridModel(
         num_users=num_users,
         num_items=num_songs,
         audio_embedding_dim=embedding_dim,
         user_embedding_dim=config.EMBEDDING_DIM,
         hidden_dims=config.HYBRID_HIDDEN_DIMS,
-        dropout_rate=0.3
+        dropout_rate=config.DROPOUT,
+        use_attention=True,
+        num_heads=config.ATTENTION_HEADS
     ).to(device)
     
     checkpoint_path = config.MODEL_CHECKPOINT_PATH.replace(".pt", "_hybrid.pt")
@@ -348,12 +431,23 @@ def run_hybrid_pipeline(
         weight_decay=config.WEIGHT_DECAY,
         device=device,
         patience=config.PATIENCE,
-        checkpoint_path=checkpoint_path
+        checkpoint_path=checkpoint_path,
+        use_class_weights=config.USE_CLASS_WEIGHTS,
+        positive_weight=config.POSITIVE_WEIGHT,
+        label_smoothing=config.LABEL_SMOOTHING,
+        warmup_epochs=config.WARMUP_EPOCHS,
+        gradient_clip=config.GRADIENT_CLIP
     )
     
-    # Evaluate
+    # Evaluate (excluding training items)
     logger.info("Evaluating Hybrid model...")
-    results = evaluate_model(hybrid_model, train_df, test_df, num_songs, k_values=[5, 10, 20], device=device, audio_embeddings=normalized_audio)
+    results = evaluate_model(
+        hybrid_model, train_df, test_df, num_songs, 
+        k_values=[5, 10, 20], 
+        device=device, 
+        audio_embeddings=normalized_audio,
+        exclude_train_items=True  # Important fix!
+    )
     print_evaluation_results(results)
     
     # Save the trained Hybrid model

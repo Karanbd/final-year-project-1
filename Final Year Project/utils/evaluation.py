@@ -4,6 +4,7 @@ Evaluation Metrics for Recommendation Systems.
 
 import torch
 import numpy as np
+import pandas as pd
 from typing import List, Dict, Tuple, Optional, Union
 import logging
 
@@ -18,7 +19,8 @@ def get_top_k_recommendations(
     k: int = 10,
     device: Optional[torch.device] = None,
     exclude_items: Optional[List[int]] = None,
-    audio_embeddings: Optional[torch.Tensor] = None
+    audio_embeddings: Optional[torch.Tensor] = None,
+    train_items: Optional[set] = None
 ) -> List[int]:
     """
     Get top-k song recommendations for a user.
@@ -31,6 +33,7 @@ def get_top_k_recommendations(
         device: Device to run on
         exclude_items: Items to exclude from recommendations
         audio_embeddings: Audio embedding matrix (for older Hybrid models)
+        train_items: Set of training items to exclude (for proper evaluation)
         
     Returns:
         List of top-k item IDs
@@ -55,6 +58,14 @@ def get_top_k_recommendations(
             mask[exclude_items] = False
             scores = scores * mask.float()
         
+        # Exclude training items if specified (IMPORTANT for proper evaluation!)
+        if train_items is not None and len(train_items) > 0:
+            mask = torch.ones(num_items, dtype=torch.bool)
+            for item in train_items:
+                if 0 <= item < num_items:
+                    mask[item] = False
+            scores = scores * mask.float() + (-1e10) * (~mask).float()
+        
         # Get top-k
         top_k = torch.topk(scores, k=min(k, num_items)).indices.tolist()
     
@@ -67,7 +78,8 @@ def precision_at_k(
     num_items: int,
     k: int = 10,
     device: Optional[torch.device] = None,
-    audio_embeddings: Optional[torch.Tensor] = None
+    audio_embeddings: Optional[torch.Tensor] = None,
+    train_df: Optional[pd.DataFrame] = None
 ) -> float:
     """
     Calculate Precision@K.
@@ -79,6 +91,7 @@ def precision_at_k(
         k: Number of top items to consider
         device: Device to run on
         audio_embeddings: Audio embedding matrix (for Hybrid models)
+        train_df: Training DataFrame (to exclude training items)
         
     Returns:
         Precision@K score
@@ -86,15 +99,25 @@ def precision_at_k(
     if device is None:
         device = next(model.parameters()).device
     
+    # Get training items per user if provided
+    train_items_dict = {}
+    if train_df is not None:
+        for user in train_df["user_id"].unique():
+            train_items_dict[user] = set(train_df[train_df["user_id"] == user]["song_id"])
+    
     model.eval()
     precision_scores = []
     
     with torch.no_grad():
         for user in test_df["user_id"].unique():
-            # Get top-k recommendations
+            # Get training items to exclude
+            train_items = train_items_dict.get(user, set())
+            
+            # Get top-k recommendations (excluding training items)
             top_k = get_top_k_recommendations(
                 model, user, num_items, k, device, 
-                exclude_items=None, audio_embeddings=audio_embeddings
+                exclude_items=None, audio_embeddings=audio_embeddings,
+                train_items=train_items
             )
             
             # Get ground truth
@@ -116,7 +139,8 @@ def recall_at_k(
     num_items: int,
     k: int = 10,
     device: Optional[torch.device] = None,
-    audio_embeddings: Optional[torch.Tensor] = None
+    audio_embeddings: Optional[torch.Tensor] = None,
+    train_df: Optional[pd.DataFrame] = None
 ) -> float:
     """
     Calculate Recall@K.
@@ -128,6 +152,7 @@ def recall_at_k(
         k: Number of top items to consider
         device: Device to run on
         audio_embeddings: Audio embedding matrix (for Hybrid models)
+        train_df: Training DataFrame (to exclude training items)
         
     Returns:
         Recall@K score
@@ -135,15 +160,24 @@ def recall_at_k(
     if device is None:
         device = next(model.parameters()).device
     
+    # Get training items per user if provided
+    train_items_dict = {}
+    if train_df is not None:
+        for user in train_df["user_id"].unique():
+            train_items_dict[user] = set(train_df[train_df["user_id"] == user]["song_id"])
+    
     model.eval()
     recall_scores = []
     
     with torch.no_grad():
         for user in test_df["user_id"].unique():
+            # Get training items to exclude
+            train_items = train_items_dict.get(user, set())
+            
             # Get top-k recommendations
             top_k = get_top_k_recommendations(
                 model, user, num_items, k, device,
-                audio_embeddings=audio_embeddings
+                audio_embeddings=audio_embeddings, train_items=train_items
             )
             
             # Get ground truth
@@ -165,7 +199,8 @@ def ndcg_at_k(
     num_items: int,
     k: int = 10,
     device: Optional[torch.device] = None,
-    audio_embeddings: Optional[torch.Tensor] = None
+    audio_embeddings: Optional[torch.Tensor] = None,
+    train_df: Optional[pd.DataFrame] = None
 ) -> float:
     """
     Calculate Normalized Discounted Cumulative Gain (NDCG)@K.
@@ -177,6 +212,7 @@ def ndcg_at_k(
         k: Number of top items to consider
         device: Device to run on
         audio_embeddings: Audio embedding matrix (for Hybrid models)
+        train_df: Training DataFrame (to exclude training items)
         
     Returns:
         NDCG@K score
@@ -184,15 +220,24 @@ def ndcg_at_k(
     if device is None:
         device = next(model.parameters()).device
     
+    # Get training items per user if provided
+    train_items_dict = {}
+    if train_df is not None:
+        for user in train_df["user_id"].unique():
+            train_items_dict[user] = set(train_df[train_df["user_id"] == user]["song_id"])
+    
     model.eval()
     ndcg_scores = []
     
     with torch.no_grad():
         for user in test_df["user_id"].unique():
+            # Get training items to exclude
+            train_items = train_items_dict.get(user, set())
+            
             # Get top-k recommendations
             top_k = get_top_k_recommendations(
                 model, user, num_items, k, device,
-                audio_embeddings=audio_embeddings
+                audio_embeddings=audio_embeddings, train_items=train_items
             )
             
             # Get ground truth
@@ -223,7 +268,8 @@ def map_at_k(
     num_items: int,
     k: int = 10,
     device: Optional[torch.device] = None,
-    audio_embeddings: Optional[torch.Tensor] = None
+    audio_embeddings: Optional[torch.Tensor] = None,
+    train_df: Optional[pd.DataFrame] = None
 ) -> float:
     """
     Calculate Mean Average Precision (MAP)@K.
@@ -235,6 +281,7 @@ def map_at_k(
         k: Number of top items to consider
         device: Device to run on
         audio_embeddings: Audio embedding matrix (for Hybrid models)
+        train_df: Training DataFrame (to exclude training items)
         
     Returns:
         MAP@K score
@@ -242,15 +289,24 @@ def map_at_k(
     if device is None:
         device = next(model.parameters()).device
     
+    # Get training items per user if provided
+    train_items_dict = {}
+    if train_df is not None:
+        for user in train_df["user_id"].unique():
+            train_items_dict[user] = set(train_df[train_df["user_id"] == user]["song_id"])
+    
     model.eval()
     ap_scores = []
     
     with torch.no_grad():
         for user in test_df["user_id"].unique():
+            # Get training items to exclude
+            train_items = train_items_dict.get(user, set())
+            
             # Get top-k recommendations
             top_k = get_top_k_recommendations(
                 model, user, num_items, k, device,
-                audio_embeddings=audio_embeddings
+                audio_embeddings=audio_embeddings, train_items=train_items
             )
             
             # Get ground truth
@@ -282,7 +338,8 @@ def mrr_at_k(
     num_items: int,
     k: int = 10,
     device: Optional[torch.device] = None,
-    audio_embeddings: Optional[torch.Tensor] = None
+    audio_embeddings: Optional[torch.Tensor] = None,
+    train_df: Optional[pd.DataFrame] = None
 ) -> float:
     """
     Calculate Mean Reciprocal Rank (MRR)@K.
@@ -294,6 +351,7 @@ def mrr_at_k(
         k: Number of top items to consider
         device: Device to run on
         audio_embeddings: Audio embedding matrix (for Hybrid models)
+        train_df: Training DataFrame (to exclude training items)
         
     Returns:
         MRR@K score
@@ -301,15 +359,24 @@ def mrr_at_k(
     if device is None:
         device = next(model.parameters()).device
     
+    # Get training items per user if provided
+    train_items_dict = {}
+    if train_df is not None:
+        for user in train_df["user_id"].unique():
+            train_items_dict[user] = set(train_df[train_df["user_id"] == user]["song_id"])
+    
     model.eval()
     rr_scores = []
     
     with torch.no_grad():
         for user in test_df["user_id"].unique():
+            # Get training items to exclude
+            train_items = train_items_dict.get(user, set())
+            
             # Get top-k recommendations
             top_k = get_top_k_recommendations(
                 model, user, num_items, k, device,
-                audio_embeddings=audio_embeddings
+                audio_embeddings=audio_embeddings, train_items=train_items
             )
             
             # Get ground truth
@@ -335,7 +402,8 @@ def hit_rate_at_k(
     num_items: int,
     k: int = 10,
     device: Optional[torch.device] = None,
-    audio_embeddings: Optional[torch.Tensor] = None
+    audio_embeddings: Optional[torch.Tensor] = None,
+    train_df: Optional[pd.DataFrame] = None
 ) -> float:
     """
     Calculate Hit Rate@K (proportion of users with at least one hit).
@@ -347,6 +415,7 @@ def hit_rate_at_k(
         k: Number of top items to consider
         device: Device to run on
         audio_embeddings: Audio embedding matrix (for Hybrid models)
+        train_df: Training DataFrame (to exclude training items)
         
     Returns:
         Hit Rate@K score
@@ -354,16 +423,25 @@ def hit_rate_at_k(
     if device is None:
         device = next(model.parameters()).device
     
+    # Get training items per user if provided
+    train_items_dict = {}
+    if train_df is not None:
+        for user in train_df["user_id"].unique():
+            train_items_dict[user] = set(train_df[train_df["user_id"] == user]["song_id"])
+    
     model.eval()
     hits = 0
     total_users = 0
     
     with torch.no_grad():
         for user in test_df["user_id"].unique():
+            # Get training items to exclude
+            train_items = train_items_dict.get(user, set())
+            
             # Get top-k recommendations
             top_k = get_top_k_recommendations(
                 model, user, num_items, k, device,
-                audio_embeddings=audio_embeddings
+                audio_embeddings=audio_embeddings, train_items=train_items
             )
             
             # Get ground truth
@@ -387,7 +465,8 @@ def evaluate_model(
     num_items: int,
     k_values: List[int] = [5, 10, 20],
     device: Optional[torch.device] = None,
-    audio_embeddings: Optional[torch.Tensor] = None
+    audio_embeddings: Optional[torch.Tensor] = None,
+    exclude_train_items: bool = False
 ) -> Dict[str, Dict[int, float]]:
     """
     Evaluate model with multiple metrics at multiple k values.
@@ -400,6 +479,7 @@ def evaluate_model(
         k_values: List of k values to evaluate
         device: Device to run on
         audio_embeddings: Audio embedding matrix (for Hybrid models)
+        exclude_train_items: Whether to exclude training items from recommendations
         
     Returns:
         Dictionary of metric_name -> {k: score}
@@ -416,26 +496,29 @@ def evaluate_model(
         "hit_rate": {}
     }
     
+    # Use train_df for exclusion if enabled
+    eval_train_df = train_df if exclude_train_items else None
+    
     for k in k_values:
         logger.info(f"Evaluating at k={k}")
         
         results["precision"][k] = precision_at_k(
-            model, test_df, num_items, k, device, audio_embeddings
+            model, test_df, num_items, k, device, audio_embeddings, eval_train_df
         )
         results["recall"][k] = recall_at_k(
-            model, test_df, num_items, k, device, audio_embeddings
+            model, test_df, num_items, k, device, audio_embeddings, eval_train_df
         )
         results["ndcg"][k] = ndcg_at_k(
-            model, test_df, num_items, k, device, audio_embeddings
+            model, test_df, num_items, k, device, audio_embeddings, eval_train_df
         )
         results["map"][k] = map_at_k(
-            model, test_df, num_items, k, device, audio_embeddings
+            model, test_df, num_items, k, device, audio_embeddings, eval_train_df
         )
         results["mrr"][k] = mrr_at_k(
-            model, test_df, num_items, k, device, audio_embeddings
+            model, test_df, num_items, k, device, audio_embeddings, eval_train_df
         )
         results["hit_rate"][k] = hit_rate_at_k(
-            model, test_df, num_items, k, device, audio_embeddings
+            model, test_df, num_items, k, device, audio_embeddings, eval_train_df
         )
     
     return results

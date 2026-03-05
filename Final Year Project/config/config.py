@@ -40,44 +40,59 @@ HYBRID_MODEL_PATH = os.path.join(BASE_DIR, "hybrid_model.pt")
 MODEL_NAME = "MIT/ast-finetuned-audioset-10-10-0.4593"
 AUDIO_EMBEDDING_DIM = 768  # AST output dimension
 
-# NCF Model
-EMBEDDING_DIM = 128  # Increased from 64
-NCF_HIDDEN_DIMS = [256, 128, 64]  # Increased dimensions
+# NCF Model - IMPROVED for better precision
+EMBEDDING_DIM = 256  # Increased from 128 for richer representations
+NCF_HIDDEN_DIMS = [512, 256, 128]  # Deeper network
 
-# Hybrid Model
-HYBRID_HIDDEN_DIMS = [512, 256, 128]  # Increased dimensions
+# Hybrid Model - IMPROVED
+HYBRID_HIDDEN_DIMS = [512, 256, 128]  # Deeper network
+ATTENTION_HEADS = 4  # Number of attention heads
 
 # ============================================
-# Training Configuration
+# Training Configuration - IMPROVED
 # ============================================
-# Dataset
+# Dataset - More interactions for better learning
 NUM_USERS = 500
-MIN_SONGS_PER_USER = 20
-MAX_SONGS_PER_USER = 50
+MIN_SONGS_PER_USER = 50  # Increased from 20
+MAX_SONGS_PER_USER = 100  # Increased from 50
 
-# Hyperparameters - IMPROVED
-BATCH_SIZE = 256  # Increased for faster training
-NCF_EPOCHS = 10  # Reduced for faster results
-HYBRID_EPOCHS = 5  # Reduced for faster results
-LEARNING_RATE = 0.001  # Increased for faster convergence
-WEIGHT_DECAY = 1e-4  # Increased for better regularization
-DROPOUT = 0.2  # Added dropout
+# Hyperparameters - OPTIMIZED for precision
+BATCH_SIZE = 512  # Larger batch for stable gradients
+NCF_EPOCHS = 30  # More epochs for better convergence
+HYBRID_EPOCHS = 20  # More epochs for Hybrid
+LEARNING_RATE = 0.0005  # Lower LR for finer updates
+WEIGHT_DECAY = 1e-4  # Regularization
+DROPOUT = 0.2  # Dropout for regularization
 
-# Early stopping - More patient
-PATIENCE = 5  # Increased from 3
-MIN_DELTA = 0.0005  # Smaller delta for more patience
+# Class balancing
+USE_CLASS_WEIGHTS = True
+POSITIVE_WEIGHT = 3.0  # Weight positive samples more
+
+# Label smoothing - Helps prevent overconfidence
+LABEL_SMOOTHING = 0.1
+
+# Early stopping - More patient for deep learning
+PATIENCE = 7  # More patience
+MIN_DELTA = 0.001  # Minimum improvement threshold
 
 # Evaluation
 K = 10  # For precision@k, recall@k, etc.
 TEST_RATIO = 0.2
 
 # Negative sampling - More negatives for better learning
-NEGATIVE_SAMPLE_RATIO = 5  # Increased from 3
+NEGATIVE_SAMPLE_RATIO = 10  # Increased from 5
 
 # Learning rate scheduling
 USE_SCHEDULER = True
-SCHEDULER_PATIENCE = 2
+SCHEDULER_PATIENCE = 3
 SCHEDULER_FACTOR = 0.5
+WARMUP_EPOCHS = 3  # Learning rate warmup
+
+# Gradient clipping
+GRADIENT_CLIP = 1.0
+
+# Use popularity-based negative sampling
+USE_POPULARITY_NEGATIVE = True
 
 # ============================================
 # Device Configuration

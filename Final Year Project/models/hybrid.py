@@ -11,30 +11,34 @@ from typing import Optional, Tuple
 
 class HybridModel(nn.Module):
     """
-    Hybrid Recommendation Model.
+    Enhanced Hybrid Recommendation Model.
     
-    Combines user embeddings with audio content embeddings for improved recommendations.
+    Combines user embeddings with audio content embeddings using attention mechanism.
     """
     
     def __init__(
         self,
         num_users: int,
+        num_items: int,
         audio_embedding_dim: int = 768,
-        user_embedding_dim: int = 64,
-        hidden_dims: list = [256, 128, 64],
+        user_embedding_dim: int = 256,
+        hidden_dims: list = [512, 256, 128],
         dropout_rate: float = 0.3,
-        num_items: int = None
+        use_attention: bool = True,
+        num_heads: int = 4
     ):
         """
         Initialize the Hybrid model.
         
         Args:
             num_users: Number of unique users
+            num_items: Number of items (songs)
             audio_embedding_dim: Dimension of audio embeddings (from AST)
             user_embedding_dim: Dimension of user embeddings
             hidden_dims: List of hidden layer dimensions
             dropout_rate: Dropout probability for regularization
-            num_items: Number of items (songs)
+            use_attention: Whether to use attention mechanism
+            num_heads: Number of attention heads
         """
         super(HybridModel, self).__init__()
         
@@ -42,6 +46,7 @@ class HybridModel(nn.Module):
         self.num_items = num_items
         self.audio_embedding_dim = audio_embedding_dim
         self.user_embedding_dim = user_embedding_dim
+        self.use_attention = use_attention
         
         # User embedding layer
         self.user_embedding = nn.Embedding(num_users, user_embedding_dim)
@@ -49,48 +54,68 @@ class HybridModel(nn.Module):
         # Item (song) embedding layer for audio
         self.item_embedding = nn.Embedding(num_items, audio_embedding_dim)
         
-        # Audio embedding projection layer
+        # Embedding dropout
+        self.embedding_dropout = nn.Dropout(0.1)
+        
+        # Audio embedding projection with deeper network
         self.audio_projection = nn.Sequential(
-            nn.Linear(audio_embedding_dim, 256),
+            nn.Linear(audio_embedding_dim, 512),
+            nn.LayerNorm(512),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(512, 256),
+            nn.LayerNorm(256),
             nn.ReLU(),
             nn.Dropout(dropout_rate / 2),
             nn.Linear(256, user_embedding_dim)
         )
         
-        # Combined MLP
+        # Cross-attention for user-audio interaction
+        if use_attention:
+            self.attention = nn.MultiheadAttention(
+                embed_dim=user_embedding_dim,
+                num_heads=num_heads,
+                dropout=dropout_rate,
+                batch_first=True
+            )
+            self.attention_norm = nn.LayerNorm(user_embedding_dim)
+        
+        # Combined MLP with deeper architecture
         mlp_layers = []
         input_dim = user_embedding_dim * 2  # user + projected audio
         
         for hidden_dim in hidden_dims:
             mlp_layers.append(nn.Linear(input_dim, hidden_dim))
-            mlp_layers.append(nn.BatchNorm1d(hidden_dim))
+            mlp_layers.append(nn.LayerNorm(hidden_dim))
             mlp_layers.append(nn.ReLU())
             mlp_layers.append(nn.Dropout(dropout_rate))
             input_dim = hidden_dim
         
         self.mlp = nn.Sequential(*mlp_layers)
         
-        # Output layer
+        # Output layer with deeper head
         self.output_layer = nn.Sequential(
-            nn.Linear(hidden_dims[-1], 32),
+            nn.Linear(hidden_dims[-1], 128),
             nn.ReLU(),
             nn.Dropout(dropout_rate / 2),
-            nn.Linear(32, 1),
-            nn.Sigmoid()
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate / 2),
+            nn.Linear(64, 1)
         )
         
-        # Initialize weights
+        # Initialize weights with He initialization
         self._init_weights()
     
     def _init_weights(self):
-        """Initialize model weights."""
+        """Initialize model weights with He initialization."""
         for module in self.modules():
             if isinstance(module, nn.Embedding):
                 nn.init.normal_(module.weight, mean=0, std=0.01)
             elif isinstance(module, nn.Linear):
-                nn.init.xavier_uniform_(module.weight)
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
     
     def forward(
         self,
@@ -113,8 +138,24 @@ class HybridModel(nn.Module):
         # Get item (audio) embeddings
         audio_emb_raw = self.item_embedding(item_ids)
         
+        # Apply embedding dropout
+        user_emb = self.embedding_dropout(user_emb)
+        
         # Project audio embeddings to same dimension
         audio_emb = self.audio_projection(audio_emb_raw)
+        
+        # Apply attention if enabled
+        if self.use_attention:
+            # Prepare for attention: [batch, 1, dim]
+            user_expanded = user_emb.unsqueeze(1)
+            audio_expanded = audio_emb.unsqueeze(1)
+            
+            # Cross-attention
+            attended, _ = self.attention(user_expanded, audio_expanded, audio_expanded)
+            attended = attended.squeeze(1)
+            
+            # Residual connection
+            user_emb = user_emb + self.attention_norm(attended)
         
         # Concatenate user and audio embeddings
         combined = torch.cat([user_emb, audio_emb], dim=1)

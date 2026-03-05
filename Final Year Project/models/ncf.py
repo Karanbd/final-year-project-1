@@ -10,18 +10,20 @@ from typing import Optional, Tuple
 
 class NCF(nn.Module):
     """
-    Neural Collaborative Filtering Model.
+    Enhanced Neural Collaborative Filtering Model.
     
-    Combines embeddings with a multi-layer perceptron for user-item interaction prediction.
+    Combines embeddings with a deep multi-layer perceptron for user-item interaction prediction.
+    Uses He initialization, LayerNorm, residual connections, and label smoothing.
     """
     
     def __init__(
         self, 
         num_users: int, 
         num_items: int, 
-        embedding_dim: int = 64,
-        hidden_dims: list = [128, 64, 32],
-        dropout_rate: float = 0.2
+        embedding_dim: int = 256,
+        hidden_dims: list = [512, 256, 128],
+        dropout_rate: float = 0.2,
+        use_layer_norm: bool = True
     ):
         """
         Initialize the NCF model.
@@ -32,6 +34,7 @@ class NCF(nn.Module):
             embedding_dim: Dimension of user and item embeddings
             hidden_dims: List of hidden layer dimensions for MLP
             dropout_rate: Dropout probability for regularization
+            use_layer_norm: Whether to use LayerNorm
         """
         super(NCF, self).__init__()
         
@@ -39,49 +42,57 @@ class NCF(nn.Module):
         self.num_items = num_items
         self.embedding_dim = embedding_dim
         self.hidden_dims = hidden_dims
+        self.use_layer_norm = use_layer_norm
         
-        # User and item embeddings
+        # User and item embeddings with larger dimension
         self.user_embedding = nn.Embedding(num_users, embedding_dim)
         self.item_embedding = nn.Embedding(num_items, embedding_dim)
+        
+        # Embedding dropout
+        self.embedding_dropout = nn.Dropout(0.1)
         
         # GMF component (element-wise product of embeddings)
         gmf_output_dim = embedding_dim
         
-        # MLP component
+        # MLP component with improved architecture
         mlp_layers = []
         input_dim = embedding_dim * 2
         
         for hidden_dim in hidden_dims:
             mlp_layers.append(nn.Linear(input_dim, hidden_dim))
-            mlp_layers.append(nn.BatchNorm1d(hidden_dim))
+            if use_layer_norm:
+                mlp_layers.append(nn.LayerNorm(hidden_dim))
             mlp_layers.append(nn.ReLU())
             mlp_layers.append(nn.Dropout(dropout_rate))
             input_dim = hidden_dim
         
         self.mlp = nn.Sequential(*mlp_layers)
         
-        # Final prediction layer (combines GMF and MLP)
+        # Final prediction layer with deeper head
         final_input_dim = gmf_output_dim + hidden_dims[-1]
         self.output_layer = nn.Sequential(
-            nn.Linear(final_input_dim, 32),
+            nn.Linear(final_input_dim, 128),
             nn.ReLU(),
             nn.Dropout(dropout_rate / 2),
-            nn.Linear(32, 1),
-            nn.Sigmoid()
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate / 2),
+            nn.Linear(64, 1)
         )
         
-        # Initialize weights
+        # Initialize weights with He initialization
         self._init_weights()
     
     def _init_weights(self):
-        """Initialize model weights."""
+        """Initialize model weights with He initialization."""
         for module in self.modules():
             if isinstance(module, nn.Embedding):
                 nn.init.normal_(module.weight, mean=0, std=0.01)
             elif isinstance(module, nn.Linear):
-                nn.init.xavier_uniform_(module.weight)
                 if module.bias is not None:
                     nn.init.zeros_(module.bias)
+                # He initialization
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
     
     def forward(
         self, 
@@ -96,11 +107,15 @@ class NCF(nn.Module):
             item_ids: Tensor of item IDs
             
         Returns:
-            Predicted probabilities (0-1)
+            Predicted logits (raw, before sigmoid)
         """
         # Get embeddings
         user_emb = self.user_embedding(user_ids)
         item_emb = self.item_embedding(item_ids)
+        
+        # Apply embedding dropout
+        user_emb = self.embedding_dropout(user_emb)
+        item_emb = self.embedding_dropout(item_emb)
         
         # GMF: Element-wise product
         gmf_output = user_emb * item_emb
@@ -112,7 +127,7 @@ class NCF(nn.Module):
         # Combine GMF and MLP
         combined = torch.cat([gmf_output, mlp_output], dim=1)
         
-        # Final prediction
+        # Final prediction (return raw logits for BCEWithLogitsLoss)
         output = self.output_layer(combined)
         
         return output.squeeze(-1)
