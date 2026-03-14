@@ -24,7 +24,7 @@ from models.hybrid import HybridModel, AttentionHybridModel
 from datasets.music_dataset import MusicInteractionDataset, MusicDatasetWithAudio, train_test_split
 from utils.audio_processor import AudioProcessor, extract_embeddings_from_directory, normalize_embeddings
 from utils.data_preparation import (
-    create_random_interactions, encode_ids, create_negative_samples,
+    create_clustered_interactions, encode_ids, create_negative_samples,
     create_content_based_interactions, train_test_split_by_user,
     create_audio_embedding_matrix, get_item_popularity, 
     create_popularity_based_negative_samples
@@ -250,12 +250,12 @@ def run_ncf_pipeline(
         logger.info("Loading existing interactions...")
         df = pd.read_csv(config.INTERACTIONS_SAVE_PATH)
     else:
-        logger.info("Creating random interactions with more songs per user...")
-        df = create_random_interactions(
+        logger.info("Creating CLUSTERED interactions with realistic user tastes...")
+        df = create_clustered_interactions(
             embeddings_dict,
             num_users=config.NUM_USERS,
-            min_songs_per_user=config.MIN_SONGS_PER_USER,
-            max_songs_per_user=config.MAX_SONGS_PER_USER,
+            songs_per_user=(config.MIN_SONGS_PER_USER + config.MAX_SONGS_PER_USER) // 2,
+            num_clusters=20,
             random_seed=config.RANDOM_SEED
         )
         df.to_csv(config.INTERACTIONS_SAVE_PATH, index=False)

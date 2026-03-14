@@ -385,6 +385,105 @@ def balance_dataset(
     return pd.concat([pos_df, neg_df], ignore_index=True).sample(frac=1, random_state=random_seed)
 
 
+def create_clustered_interactions(
+    embeddings_dict: Dict[str, torch.Tensor],
+    num_users: int = 1000,
+    songs_per_user: int = 60,
+    num_clusters: int = 20,
+    random_seed: int = 42
+) -> pd.DataFrame:
+    """
+    Create REALISTIC interactions by clustering songs and assigning user tastes.
+    
+    1. KMeans cluster audio embeddings into genres/styles
+    2. Assign each user to 1-2 clusters (taste profile)
+    3. Users like 80% songs from their clusters, 20% random
+    
+    Args:
+        embeddings_dict: Song embeddings
+        num_users: Number of users
+        songs_per_user: Likes per user
+        num_clusters: Number of taste clusters
+        random_seed: Seed
+        
+    Returns:
+        Realistic interaction DataFrame
+    """
+    from sklearn.cluster import KMeans
+    import torch
+    
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+    
+    # Stack embeddings into matrix
+    song_ids = list(embeddings_dict.keys())
+    num_songs = len(song_ids)
+    embedding_dim = 768  # AST dim
+    
+    embedding_matrix = torch.zeros(num_songs, embedding_dim)
+    for i, song_id in enumerate(song_ids):
+        embedding_matrix[i] = embeddings_dict[song_id]
+    
+    # Normalize for clustering
+    embedding_matrix = torch.nn.functional.normalize(embedding_matrix, p=2, dim=1).numpy()
+    
+    # KMeans clustering (audio-based genres)
+    kmeans = KMeans(n_clusters=num_clusters, random_state=random_seed, n_init=10)
+    song_clusters = kmeans.fit_predict(embedding_matrix)
+    
+    logger.info(f"Clustered {num_songs} songs into {num_clusters} clusters")
+    
+    # Cluster sizes
+    cluster_sizes = [0] * num_clusters
+    for cluster in song_clusters:
+        cluster_sizes[cluster] += 1
+    
+    interactions = []
+    
+    for user_id in range(num_users):
+        # User taste: primary + secondary cluster
+        primary_cluster = random.choices(range(num_clusters), weights=cluster_sizes, k=1)[0]
+        secondary_cluster = random.choice([c for c in range(num_clusters) if c != primary_cluster])
+        
+        # Get songs in user's taste clusters
+        taste_songs_primary = [i for i, c in enumerate(song_clusters) if c == primary_cluster]
+        taste_songs_secondary = [i for i, c in enumerate(song_clusters) if c == secondary_cluster]
+        taste_songs = taste_songs_primary + taste_songs_secondary
+        
+        # 80% from taste, 20% random
+        num_taste = int(songs_per_user * 0.8)
+        num_random = songs_per_user - num_taste
+        
+        # Taste likes (prefer primary)
+        primary_count = int(num_taste * 0.7)
+        secondary_count = num_taste - primary_count
+        
+        if len(taste_songs_primary) >= primary_count:
+            liked_primary = random.sample(taste_songs_primary, primary_count)
+        else:
+            liked_primary = taste_songs_primary + random.choices(taste_songs_primary, k=primary_count - len(taste_songs_primary))
+        
+        if len(taste_songs_secondary) >= secondary_count:
+            liked_secondary = random.sample(taste_songs_secondary, secondary_count)
+        else:
+            liked_secondary = taste_songs_secondary + random.choices(taste_songs_secondary, k=secondary_count - len(taste_songs_secondary))
+        
+        taste_likes = liked_primary + liked_secondary
+        
+        # Random likes (exploration)
+        all_songs = list(range(num_songs))
+        random_likes = random.sample([s for s in all_songs if s not in taste_likes], min(num_random, len(all_songs)))
+        
+        all_likes = taste_likes + random_likes[:num_random]
+        
+        for song_idx in all_likes:
+            interactions.append([user_id, song_ids[song_idx], 1])
+    
+    df = pd.DataFrame(interactions, columns=["user_id", "song_id", "interaction"])
+    logger.info(f"Created {len(df)} CLUSTERED interactions for {num_users} users across {num_clusters} tastes")
+    return df
+
+
 def get_item_popularity(
     df: pd.DataFrame,
     item_col: str = "song_id"

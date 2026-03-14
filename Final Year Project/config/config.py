@@ -41,7 +41,7 @@ MODEL_NAME = "MIT/ast-finetuned-audioset-10-10-0.4593"
 AUDIO_EMBEDDING_DIM = 768  # AST output dimension
 
 # NCF Model - IMPROVED for better precision
-EMBEDDING_DIM = 256  # Increased from 128 for richer representations
+EMBEDDING_DIM = 512  # Increased for richer representations
 NCF_HIDDEN_DIMS = [512, 256, 128]  # Deeper network
 
 # Hybrid Model - IMPROVED
@@ -52,15 +52,15 @@ ATTENTION_HEADS = 4  # Number of attention heads
 # Training Configuration - IMPROVED
 # ============================================
 # Dataset - More interactions for better learning
-NUM_USERS = 500
-MIN_SONGS_PER_USER = 50  # Increased from 20
+NUM_USERS = 1000
+MIN_SONGS_PER_USER = 40  # Balanced for clustering
 MAX_SONGS_PER_USER = 100  # Increased from 50
 
 # Hyperparameters - OPTIMIZED for precision
 BATCH_SIZE = 512  # Larger batch for stable gradients
-NCF_EPOCHS = 30  # More epochs for better convergence
-HYBRID_EPOCHS = 20  # More epochs for Hybrid
-LEARNING_RATE = 0.0005  # Lower LR for finer updates
+NCF_EPOCHS = 50  # More epochs for precision boost
+HYBRID_EPOCHS = 30  # More epochs for precision boost
+LEARNING_RATE = 0.0002  # Lower LR for precision
 WEIGHT_DECAY = 1e-4  # Regularization
 DROPOUT = 0.2  # Dropout for regularization
 
@@ -72,7 +72,7 @@ POSITIVE_WEIGHT = 3.0  # Weight positive samples more
 LABEL_SMOOTHING = 0.1
 
 # Early stopping - More patient for deep learning
-PATIENCE = 7  # More patience
+PATIENCE = 10  # More patience for convergence
 MIN_DELTA = 0.001  # Minimum improvement threshold
 
 # Evaluation
@@ -80,7 +80,7 @@ K = 10  # For precision@k, recall@k, etc.
 TEST_RATIO = 0.2
 
 # Negative sampling - More negatives for better learning
-NEGATIVE_SAMPLE_RATIO = 10  # Increased from 5
+NEGATIVE_SAMPLE_RATIO = 8  # Balanced for training speed
 
 # Learning rate scheduling
 USE_SCHEDULER = True
