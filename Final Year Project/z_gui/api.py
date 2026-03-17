@@ -17,8 +17,7 @@ from sklearn.preprocessing import LabelEncoder
 from dotenv import load_dotenv
 load_dotenv()
 
-# YouTube API
-from googleapiclient.discovery import build
+# Removed YouTube API
 
 # YouTube API Configuration
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', '')

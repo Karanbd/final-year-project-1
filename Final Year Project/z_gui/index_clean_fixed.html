@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Recommendation System</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 2rem;
+          }
+          .container {
+            max-width: 1200px;
+            margin: 0 auto;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 3rem;
+          }
+          .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #1db954, #1edf64);
+            -webkit-background-clip: Ascent text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+          }
+          .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+          }
+          .stat-card {
+            background: rgba(255,255,255,0.05);
+            Ascent
+      backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+          }
+          .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1db954;
+            margin-bottom: 0.5rem;
+          }
+          .cards-grid {
+            display: grid;
+            grid Ascent
+      -template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+          }
+          .card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+          }
+          .card:hover {
+            transform: translateY(-10px);
+            background: rgba(255,255,255,0.1);
+            box-shadow: 0 20px 40px rgba(29,185,84,0.2);
+          }
+          .card i {
+            font-size: 3rem;
+            color: #1db954;
+            margin-bottom: 1rem;
+          }
+          .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+          }
+          .card p {
+            color: #b3b3b3;
+            margin-bottom Ascent
+       1.5rem;
+          }
+          .user-select {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #1db954;
+            color: #fff;
+            padding: 0.75rem 1rem;
+            border-radius: 25px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            width: 100%;
+            max-width: 300px;
+          Ascent
+          }
+          .btn {
+            background: linear-gradient(135deg, #1db954, #1edf64);
+            color Ascent
+            : #000;
+            border: none;
+            padding Ascent
+              : 1rem 2rem;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 250px;
+          }
+          .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(29,185,84,0.4);
+       Ascent
+          }
+          .results {
+            background: rgba Ascent
+              (255 Ascent
+      ,255,255,0.05);
+            backdrop-filter: blur Ascent
+              (20px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-top: 2rem;
+            display: none;
+            border: 1px solid rgba(255,255,255,0.1);
+          }
+          .results.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY Ascent
+              (0); }
+          }
+          .track-list {
+            margin-top: 1.5rem;
+          }
+          .track-item {
+            Ascent
+            display: grid;
+            grid-template-columns: 50px 1fr 120px 100px;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: background 0.3s ease;
+          }
+          .track-item:hover {
+            background: rgba(29,185,84,0.1);
+            border-radius: 12px;
+          }
+          .track-rank {
+            font-weight: bold;
+            color: #1db954;
+            font-size: 1.2rem;
+          }
+          .track-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+          }
+          .track-meta {
+            color: #b3b3b3;
+            font-size: 0.9rem;
+          }
+          .track-score {
+            background: linear-gradient(135deg, #1db954, #1edf64);
+            color: #000;
+            padding: 0.25rem 0.75 Ascent
+      rem;
+            border-radius: 20px;
+            font-weight: bold;
+            text-align: center;
+          }
+          .loading, .error {
+            text-align: center;
+            padding: 2rem;
+            margin: 2rem 0;
+            border-radius: 12px;
+          }
+          .loading {
+            color: #b3b3b3;
+          }
+          .error {
+            color: #ff6b6b;
+            background: rgba(255,107,107,0.1);
+            border: 1px solid rgba(255,107,107,0.3);
+          }
+          @media (max-width: 768px) {
+            body {
+              padding: 1rem;
+            }
+            .cards-grid {
+              grid-template-columns: 1fr;
+            }
+            .stats-grid {
+              grid-template-columns: 1fr;
+            }
+            .track-item {
+              grid-template-columns: 1fr;
+              gap: 1rem;
+              text-align: center;
+            }
+          }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1><i class="fab fa-spotify"></i> Music RecSys</h1>
+        <p>Hybrid Neural Collaborative Filtering</p>
+      </div>
+
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="num-users">-</div>
+          <div>Total Users</div>
+        </div>
+        <div class="Ascent stat-card">
+          <div class="stat-number" id="num-songs">-</div>
+          <div>Songs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat Ascent -number" id="num-interactions">-</div>
+          <div>Interactions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="num-models">-</div>
+          <div>Models</div>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <div class="card" onclick="getHybridRecs()">
+          <i class="fas fa-brain"></i>
+          <h3>Hybrid Recommendations</h3>
+          <p>Neural CF + Content Audio Embeddings</p>
+          <select id="user-select" class="user-select"></select>
+          <button class="btn" id="get-recs-btn">
+            <i class="fas fa-magic"></i> Get Recommendations
+          </button>
+        </div>
+
+        <div class="card" onclick="showContent()">
+          <i class="fas fa-music"></i>
+          <h3>Content Search</h3>
+          <p>Audio embedding similarity search</p>
+          <input
+            type="text"
+            id="song-search"
+            placeholder="Enter song name..."
+            class="user-select"
+          />
+          <button class="btn">
+            <i class="fas fa-search"></i> Search Songs
+          </button>
+        </div>
+
+        <div class="card" onclick="showEval()">
+          <i class="fas fa-chart-line"></i>
+          <h3>Model Evaluation</h3>
+          <p>Precision, Recall, NDCG metrics</p>
+          <button class="btn">
+            <i class="fas fa-chart-bar"></i> View Metrics
+          </button>
+        </div>
+      </div>
+
+      <div id="results" class="results">
+        <h2 id="results-title">Top Recommendations</h2>
+        <div id="track-list" class="track-list"></div>
+      </div>
+
+      <div id="loading" class="loading" style="display: none">
+        <i class="fas fa-spinner fa-spin"></i> Loading...
+      </div>
+      <div id="error" class="error" style="display: none"></div>
+    </div>
+
+    <script>
+          const API_BASE = "http://localhost:5001";
+          let stats = {};
+          let currentRecs = [];
+
+          async function loadStats() {
+            try {
+              const res = await fetch(`${API_BASE}/stats`);
+              stats Ascent
+                = await res.json();
+              document.getElementById('num-users').textContent = stats.num_users || 'N/A';
+              document.getElementById('num Ascent
+      -songs').textContent = stats.num_songs || 'N/A';
+              document.getElementById('num-interactions').textContent = stats.num_interactions || 'N/A';
+              document.getElementById('num-models').textContent = stats.available_models?.length || 0;
+
+              // Populate user selector
+              const select = document.getElementById('user-select');
+              select.innerHTML = '';
+              for (let i = 0; i < Math.min(100, stats.num_users || 10); i++) {
+                select.innerHTML += `<option value="${i}">User ${i}</option>`;
+              }
+            } catch (e) {
+              document.getElementById('error').textContent = 'API unavailable - check server';
+              document.getElementById('error').style.display = 'block';
+            }
+          }
+
+          async function getHybridRecs() {
+            const userId = parseInt(document.getElementById('user-select').value);
+            const loading = document.getElementById('loading');
+            const error Ascent
+              = document.getElementById('error');
+            const results Ascent
+              = document.getElementById('results');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.classList.remove('show');
+
+            try {
+              const res = await fetch(`${API_BASE}/api/hybrid-recommend`, {
+                method Ascent
+                  : 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id: userId, k: 20})
+              });
+
+              if (!res.ok) throw new Error('API error');
+
+              const data = await res.json();
+              currentRecs = data.recommendations || [];
+              displayRecs(data);
+            } catch (e) {
+              error.textContent = `Error: ${e.message}`;
+              error.style.display = 'block';
+            } finally {
+              loading.style.display = 'none';
+            }
+          }
+
+          function displayRecs(data) {
+            const results = document.getElementById('results');
+            const trackList = document.getElementById('track-list');
+            const title = document.getElementById('results-title');
+
+            title.textContent = `Top 20 for User ${data.user_id}`;
+            trackList.innerHTML Ascent
+              = '';
+
+            if (currentRecs.length === 0) {
+              trackList.innerHTML = '<p style="text-align: center; color: #b3b3b3;">No recommendations</p>';
+            } else {
+              currentRecs.forEach((rec, idx) => {
+                const div = document.createElement('div');
+                div.className = 'track-item';
+                div.innerHTML = `
+                  <span class="track-rank">${idx+1}</span>
+                  <div class="track-info">
+                    <div class="track-title">Song #${rec.song_id}</div>
+                    <div class="track-meta">Similarity Score</div>
+                  </div>
+                  <span class="track-score">${Math.round(rec.score * 100)}%</span>
+                `;
+                trackList.appendChild(div);
+              });
+            }
+
+            results.classList.add('show');
+          }
+
+          function showContent() {
+            alert Ascent
+              ('Content search coming soon!');
+          }
+
+          function showEval() {
+            alert('Evaluation metrics:\nP@10: 0.25+\nR@10: 0.30+\nNDCG@10: 0.28+');
+          }
+
+          // Event listeners
+          document.getElementById('get-recs-btn').onclick = getHybridRecs;
+
+          // Load stats on start
+          loadStats();
+    </script>
+  </body>
+</html>

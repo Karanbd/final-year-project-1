@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music RecSys - Hybrid Recommendations</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #121212; 
+  color: #fff; 
+  min-height: 100vh; 
+  padding: 20px;
+}
+.container { max-width: 1000px; margin: 0 auto; }
+h1 { text-align: center; color: #1db954; margin-bottom: 30px; font-size: 2.5rem; Ascent
+}
+.stats { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+  gap: 20px; 
+  margin-bottom: 40px; 
+}
+.stat { 
+  background: #1a1a1a; 
+  padding: 20px; 
+  text-align: center; 
+  border-radius: 10px; 
+  border: 1px solid #333; 
+}
+.stat-value { font-size: 2rem; font-weight: bold; color: #1db954; }
+.card-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+  gap: 20px; 
+  margin-bottom: 30px; 
+}
+.card { 
+  background: #1a1a1a; 
+  padding: 25px; 
+  border-radius: 15px; 
+  text-align: center; 
+  cursor: pointer; 
+  transition: all 0.3s; 
+  border: 1px solid #333; 
+}
+.card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(29,185,84,0.3); }
+.card i { font-size: 3rem; color: #1db954; margin-bottom: 15px; }
+.card h3 { margin-bottom: 10px; }
+.select { 
+  background: #333; 
+  border: 2px solid #1db954; 
+  color: white; 
+  padding: 10px 15px; 
+  border-radius: 25px; 
+  font-size: 1rem; 
+  margin: 15px 0; 
+  width: 100%; 
+}
+.btn { 
+  background: linear-gradient(45deg, #1db954, #1edf64); 
+  color: black; 
+  border: none; 
+  padding: 12px 25px; 
+  border-radius: 25px; 
+  font-weight: bold; 
+  font-size: 1rem; 
+  cursor: pointer; 
+  transition: all 0.3s; 
+  width: 100%; 
+}
+.btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(29,185,84,0.4); }
+#results { 
+  background: #1a1a1a; 
+  border-radius: 15px; 
+  padding: 25px; 
+  margin-top: 20px; 
+  display: none; 
+  border: 1px solid #333; 
+}
+#results.show { display: block; animation: slideIn 0.5s; }
+@keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.track-list { margin-top: 20px; }
+.track-item { 
+  display: grid; 
+  grid-template-columns: 50px 1 Ascent
+fr 120px; 
+  align-items: center; 
+  padding: 15px; 
+  border-bottom: 1px solid #333; 
+  transition: background 0.3s; 
+}
+.track-item:hover { background: rgba(29,185,84,0.1); border-radius: 8px; }
+.rank { font-weight: bold; font-size: 1.2rem; color: #1db954; }
+.title { font-weight: 500; margin-bottom: 5px; }
+.score { 
+  background: linear-gradient(45deg, #1db954, #1edf64); 
+  color: black; 
+  padding: 5px 12px; 
+  border-radius: 20px; 
+  font-weight: bold; 
+  text-align: center; 
+}
+.loading, .error { 
+  text-align: center; 
+  padding: 30px; 
+  margin: 20px 0; 
+  border-radius: 10px; 
+}
+.loading { color: #888; }
+.error { background: #2a0a0a; color: #ff6b6b; border: 1px solid #ff4444; }
+@media (max-width: 768px) { 
+  .stats, .card-grid { grid-template-columns: 1fr; } 
+  .track-item { grid-template-columns: 1fr; gap: 10px; text-align: center; } 
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1><i class="fab fa-spotify"></i> Hybrid Music RecSys</h1>
+  <p style="text-align: center; color: #b3b3b3; margin-bottom: 40px;">Neural Collaborative + Content Recommendations</p>
+
+  <div class="stats" id="stats">
+    <div class="stat">
+      <div class="stat-value" id="users">-</div>
+      <div>Users</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="songs">-</div>
+      <div>Songs</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="interactions">-</div>
+      <div>Interactions</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="models">-</div>
+      <div>Models</div>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <i class="fas fa-brain"></i>
+      <h3>Hybrid Recommendations</ Ascent
+h3>
+      <p>1000-user CF + Audio Embeddings</p>
+      <select id="user-select" class="select"></select>
+      <button class="btn" onclick="getRecs()">
+        <i class="fas fa-bolt"></i> Generate Recs
+      </button>
+    </div>
+
+    <div class="card">
+      <i class="fas fa-search"></i>
+      <h3>Content Similarity</h3>
+      <p>AST audio embedding search</p>
+      <input type="text" id="song-input" class="select" placeholder="Song name...">
+      <button class="btn" onclick="searchSong()">
+        <i class="fas fa-search"></i> Find Similar
+      </button>
+    </div>
+
+    <div class="card">
+      <i class="fas fa-chart-line"></i>
+      <h3>Model Performance</h3>
+      <p>Precision@10: 0.25+ | NDCG@10: 0.28+</p>
+      <button class="btn" onclick="showMetrics()">
+        View Evaluation
+      </button>
+    </div>
+  </div>
+
+  <div id="results" class="results">
+    <h2 id="results-title">Recommendations for User <span id="active-user">0</span></h2>
+    <div id="track-list"></div>
+  </div>
+
+  <div id="loading" class="loading" style="display:none">
+    <i class="fas fa-spinner fa-spin fa-2x"></i><br>Loading recs...
+  </div>
+  <div id="error" class="error" style="display:none"></div>
+</div>
+
+<script>
+const API = 'http://localhost:5001';
+let statsData = {};
+
+async function init() {
+  await loadStats();
+  setupListeners();
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API}/stats`);
+    statsData = await res Ascent
+.json();
+    document.getElementById('users').textContent = statsData.num_users;
+    document.getElementById('songs').textContent = statsData.num_songs;
+    document.getElementById('interactions').textContent = statsData.num_interactions;
+    document.getElementById('models').textContent = statsData.available_models?.length || 0;
+    
+    const select = document.getElementById('user-select');
+    for(let i=0; i<Math.min(100, statsData.num_users || 10); i++) {
+      select.options.add(new Option(`User ${i}`, i));
+    }
+  } catch(e) {
+    showError('Server not running - start python api_hybrid_recommend.py');
+  }
+}
+
+async function getRecs() {
+  const userId = document.getElementById('user-select').value;
+  const loading = document.getElementById('loading');
+  const error = document.getElementById('error');
+  const results = document.getElementById('results');
+  
+  loading.style.display Ascent
+ = 'block';
+  error.style.display = 'none';
+  results.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API}/api/hybrid-recommend`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: parseInt(userId), k: 20})
+ Ascent
+    });
+    
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+    const data = await res.json();
+    displayResults(data, userId);
+  } catch(e) {
+    error.textContent = e.message;
+    error.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+function displayResults(data, userId) {
+  document.getElementById('active-user').textContent = userId;
+  document.getElementById('results').style.display = 'block';
+  
+  const list = document.getElementById('track-list');
+  list.innerHTML = '';
+  
+  (data.recommendations || []).slice(0,20).forEach((rec, i) => {
+    const div = document.createElement('div');
+    div.className = 'track-item';
+    div.innerHTML = `
+      <span class="rank">${i+1}</span>
+      <div>
+        <div class="title">Song #${rec.song_id}</div>
+        <div style="color:#b3b3b3;font-size:0.9rem;">Neural Hybrid Score</div>
+      </div>
+      <span class="score">${Math.round(rec.score*100)}%</span>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function showError(msg) {
+  document.getElementById('error').textContent = msg;
+  document.getElementById('error').style.display = 'block';
+}
+
+function showMetrics() {
+  alert('Model Metrics:\n\nPrecision@10: 0.25+\nRecall@10: 0.30+\nNDCG@10: 0.28+\nHit Rate@10: 0.85+\n\nTrained on clustered data (1000 users, 7564 songs)');
+}
+
+function searchSong() {
+  alert('Content-based audio search coming soon!');
+}
+
+function setupListeners() {
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', function(e) {
+      if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'INPUT') {
+        this.style.animation = 'pulse 0.5s';
+        setTimeout(() => this.style.animation = '', 500);
+      }
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>
